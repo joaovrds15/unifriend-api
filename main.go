@@ -21,6 +21,6 @@ func main() {
 			"message": "OK",
 		})
 	})
-
-	r.Run()
+	//change the port to 8080
+	r.Run(":8090")
 }

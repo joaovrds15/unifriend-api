@@ -6,14 +6,20 @@ import (
 	"strings"
 	"unifriend-api/utils/token"
 
-	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type User struct {
 	gorm.Model
-	Username string `json:"username" gorm:"size:255;not null;unique"`
-	Password string `json:"password" gorm:"size:100;not null"`
+	Username          string `json:"username" gorm:"size:255;not null;unique"`
+	Password          string `json:"password" gorm:"size:100;not null"`
+	Email             string `gorm:"size:100;unique;not null"`
+	FullName          string `gorm:"size:100;not null"`
+	ProfilePictureURL string `gorm:"size:255"`
+	IsAdmin           bool   `gorm:"default:false"`
+	MajorID           uint
+	Major             Major
 }
 
 func GetUserByID(uid uint) (User, error) {
