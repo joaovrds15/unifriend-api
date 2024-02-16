@@ -41,15 +41,14 @@ func (u *User) PrepareGive() {
 }
 
 func (u *User) SaveUser() (*User, error) {
-	var err error
-	err = DB.Create(&u).Error
+	err := DB.Create(&u).Error
 	if err != nil {
 		return &User{}, err
 	}
 	return u, nil
 }
 
-func (u *User) BeforeSave() error {
+func (u *User) BeforeSave(DB *gorm.DB) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 
 	if err != nil {
@@ -66,7 +65,6 @@ func VerifyPassword(password, hashedPassword string) error {
 }
 
 func LoginCheck(username string, password string) (string, error) {
-
 	var err error
 
 	u := User{}
