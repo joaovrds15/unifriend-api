@@ -13,6 +13,10 @@ import (
 
 var DB *gorm.DB
 
+func TearDownTestDB() {
+	DB.Migrator().DropTable(&User{}, &Major{})
+}
+
 func SetupTestDB() {
 	var err error
 	DB, err = gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
