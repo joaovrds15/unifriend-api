@@ -1,6 +1,8 @@
 package models
 
+import "gorm.io/gorm"
+
 type Major struct {
-	ID   uint   `json:"id" gorm:"primary_key"`
+	gorm.Model
 	Name string `json:"name" gorm:"size:255;not null;unique"`
 }

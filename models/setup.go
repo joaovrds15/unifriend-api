@@ -7,10 +7,28 @@ import (
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
+
+func TearDownTestDB() {
+	DB.Migrator().DropTable(&User{}, &Major{})
+}
+
+func SetupTestDB() {
+	var err error
+	DB, err = gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
+	if err != nil {
+		fmt.Println("Cannot connect to database sqlite ")
+		log.Fatal("connection error:", err)
+	} else {
+		fmt.Println("We are connected to the database sqlite")
+	}
+
+	DB.AutoMigrate(&User{}, &Major{})
+}
 
 func ConnectDataBase() {
 

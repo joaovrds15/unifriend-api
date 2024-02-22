@@ -7,11 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-
-	models.ConnectDataBase()
-
-	r := gin.Default()
+func setupRoutes(r *gin.Engine) {
 	public := r.Group("/api")
 
 	public.POST("/register", controllers.Register)
@@ -21,6 +17,17 @@ func main() {
 			"message": "OK",
 		})
 	})
-	//change the port to 8080
+}
+
+func main() {
+	r := gin.Default()
+
+	// Connect to the database
+	models.ConnectDataBase()
+
+	// Configure routes
+	setupRoutes(r)
+
+	// Run the server on port 8090
 	r.Run(":8090")
 }
