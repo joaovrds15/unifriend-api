@@ -14,7 +14,7 @@ import (
 var DB *gorm.DB
 
 func TearDownTestDB() {
-	DB.Migrator().DropTable(&User{}, &Major{})
+	DB.Migrator().DropTable(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
 }
 
 func SetupTestDB() {
@@ -27,7 +27,7 @@ func SetupTestDB() {
 		fmt.Println("We are connected to the database sqlite")
 	}
 
-	DB.AutoMigrate(&User{}, &Major{})
+	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{})
 }
 
 func ConnectDataBase() {
@@ -56,6 +56,6 @@ func ConnectDataBase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(&User{}, &Major{})
+	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
 
 }
