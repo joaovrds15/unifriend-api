@@ -27,7 +27,7 @@ func SetupTestDB() {
 		fmt.Println("We are connected to the database sqlite")
 	}
 
-	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{})
+	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
 }
 
 func ConnectDataBase() {

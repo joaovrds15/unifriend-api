@@ -31,7 +31,8 @@ func GetUserFactoryToken(user_id uint) string {
 	os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
 	os.Setenv("API_SECRET", "secret")
 	token, error := token.GenerateToken(uint(user_id))
-	if error != nil {
+
+	if error == nil {
 		return token
 	}
 

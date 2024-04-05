@@ -38,39 +38,43 @@ func TestSaveAnswers(t *testing.T) {
 	}
 
 	payload := []byte(`{
-		"user_id" : "1",
-		"quiz_id" : "1",
+		"user_id" : 1,
+		"quiz_id" : 1,
 		"answers" : [
 			  {
-				  "questionID": "1",
-				  "selectedOptionID": "1"
+				  "questionID": 1,
+				  "selectedOptionID": 1
 			  },
 			  {
-				  "questionID": "2",
-				  "selectedOptionID": "1"
+				  "questionID": 2,
+				  "selectedOptionID": 6
 			  },
 			  {
-				  "questionID": "3",
-				  "selectedOptionID": "1"
+				  "questionID": 3,
+				  "selectedOptionID": 11
 			  }
 		  ]
 	  }`)
 
-	req, _ := http.NewRequest("POST", "/api/answer/save", bytes.NewBuffer(payload))
+	req, _ := http.NewRequest("POST", "/api/private/answer/save", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+factory.GetUserFactoryToken(user.ID))
 
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
-
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
 	var userResponses []models.UserResponse
 	models.DB.Find(&userResponses).Where("user_id = ?", user.ID)
+
+	var count uint = 1
 	for i, userResponse := range userResponses {
 		assert.Equal(t, questions[i].ID, userResponse.QuestionID)
-		assert.Equal(t, 1, userResponse.OptionID)
+		assert.Equal(t, count, userResponse.OptionID)
+		println(userResponse.OptionID)
+		println(count)
+		count += 5
 	}
 
 	models.TearDownTestDB()

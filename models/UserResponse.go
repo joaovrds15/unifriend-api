@@ -9,3 +9,7 @@ type UserResponse struct {
 	UserID     uint
 	User       User
 }
+
+func (u *UserResponse) SaveUserResponse() {
+	DB.Save(&u)
+}

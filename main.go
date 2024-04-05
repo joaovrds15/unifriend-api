@@ -2,6 +2,7 @@ package main
 
 import (
 	"unifriend-api/controllers"
+	"unifriend-api/middleware"
 	"unifriend-api/models"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,15 @@ import (
 
 func setupRoutes(r *gin.Engine) {
 	public := r.Group("/api")
+	private := r.Group("/api/private")
+	private.Use(middleware.AuthMiddleware())
+
+	private.POST("/answer/save", controllers.SaveAnswers)
+	private.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
 
 	public.POST("/register", controllers.Register)
 	public.POST("/login", controllers.Login)
