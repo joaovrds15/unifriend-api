@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 	"unifriend-api/models"
+	"unifriend-api/routes"
 	"unifriend-api/tests/factory"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ import (
 func TestGetQuestions(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
-	setupRoutes(router)
+	routes.SetupRoutes(router)
 
 	quiz := factory.QuizTableFactory()
 	models.DB.Create(&quiz)
@@ -38,12 +39,11 @@ func TestGetQuestions(t *testing.T) {
 		question.Options = options
 	}
 
-	req, _ := http.NewRequest("GET", "/api/question", nil)
+	req, _ := http.NewRequest("GET", "/api/questions", nil)
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-
 	absPath, err := filepath.Abs("json-schemas/test_get_questions.json")
 	if err != nil {
 		log.Fatalf("Error getting absolute path: %v", err)
@@ -64,7 +64,7 @@ func TestGetQuestions(t *testing.T) {
 func TestSaveAnswers(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
-	setupRoutes(router)
+	routes.SetupRoutes(router)
 
 	user := factory.UserFactory()
 	quiz := factory.QuizTableFactory()

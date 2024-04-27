@@ -6,40 +6,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"unifriend-api/controllers"
-	"unifriend-api/middleware"
 	"unifriend-api/models"
+	"unifriend-api/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupRoutes(r *gin.Engine) {
-	public := r.Group("/api")
-	private := r.Group("/api/private")
-	private.Use(middleware.AuthMiddleware())
-
-	private.POST("/answer/save", controllers.SaveAnswers)
-	private.GET("/ping", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
-	public.GET("/question", controllers.GetQuestions)
-	public.POST("/register", controllers.Register)
-	public.POST("/login", controllers.Login)
-	public.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "OK",
-		})
-	})
-}
-
 func TestLoginWithWrongCredentials(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
-	setupRoutes(router)
+	routes.SetupRoutes(router)
 
 	major := models.Major{
 		Name: "Computer Science",
@@ -71,7 +48,7 @@ func TestLoginWithWrongCredentials(t *testing.T) {
 func TestLogin(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
-	setupRoutes(router)
+	routes.SetupRoutes(router)
 	os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
 
 	major := models.Major{
@@ -103,7 +80,7 @@ func TestLogin(t *testing.T) {
 func TestRegister(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
-	setupRoutes(router)
+	routes.SetupRoutes(router)
 
 	major := models.Major{
 		Name: "Computer Science",
