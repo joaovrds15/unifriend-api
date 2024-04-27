@@ -8,10 +8,7 @@ import (
 	"github.com/go-faker/faker/v4"
 )
 
-var userIDCounter int
-
 func UserFactory() models.User {
-	userIDCounter++
 	user := models.User{
 		Username:          faker.Username(),
 		Password:          faker.Password(),
@@ -22,7 +19,6 @@ func UserFactory() models.User {
 		IsAdmin:           false,
 		MajorID:           MajorFactory().ID,
 	}
-	user.ID = uint(userIDCounter)
 
 	return user
 }

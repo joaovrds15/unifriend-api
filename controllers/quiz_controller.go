@@ -18,6 +18,56 @@ type Answer struct {
 	SelectedOptionID uint `json:"selectedOptionID" binding:"required"`
 }
 
+type OptionsformatForResponse struct {
+	Id   uint   `json:"id"`
+	Text string `json:"option_text"`
+}
+
+type QuestionResponseFormat struct {
+	Id      uint                       `json:"id"`
+	Text    string                     `json:"text"`
+	QuizId  uint                       `json:"quiz_id"`
+	Options []OptionsformatForResponse `json:"options"`
+}
+
+func GetQuestions(c *gin.Context) {
+	questions, err := models.GetQuestions()
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	options, err := models.GetOptions()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	optionsByQuestionId := make(map[uint][]OptionsformatForResponse)
+	for _, option := range options {
+		optionFormat := OptionsformatForResponse{
+			Id:   option.ID,
+			Text: option.Text,
+		}
+
+		optionsByQuestionId[option.QuestionID] = append(optionsByQuestionId[option.QuestionID], optionFormat)
+	}
+
+	var questionsResponse []QuestionResponseFormat
+	for _, question := range questions {
+		response := QuestionResponseFormat{
+			Id:      question.ID,
+			Text:    question.Text,
+			QuizId:  question.Quiz_id,
+			Options: optionsByQuestionId[question.ID],
+		}
+		questionsResponse = append(questionsResponse, response)
+	}
+
+	c.JSON(http.StatusOK, questionsResponse)
+}
+
 func SaveAnswers(c *gin.Context) {
 	var input SaveAnswersInput
 

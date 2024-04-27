@@ -26,6 +26,7 @@ func setupRoutes(r *gin.Engine) {
 		})
 	})
 
+	public.GET("/question", controllers.GetQuestions)
 	public.POST("/register", controllers.Register)
 	public.POST("/login", controllers.Login)
 	public.GET("/health", func(ctx *gin.Context) {

@@ -1,0 +1,305 @@
+{
+    "type": "array",
+    "items": [
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "quiz_id": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "items": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "quiz_id",
+          "options"
+        ]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "quiz_id": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "items": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "quiz_id",
+          "options"
+        ]
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          },
+          "quiz_id": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "items": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "option_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "option_text"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "quiz_id",
+          "options"
+        ]
+      }
+    ]
+  }

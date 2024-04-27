@@ -3,9 +3,8 @@ package models
 type OptionTable struct {
 	ID         uint   `json:"id" gorm:"primaryKey"`
 	Text       string `json:"text" gorm:"size:255;not null"`
-	QuestionID uint
+	QuestionID uint   `json:"questionId"`
 	QuestionTable
-	UserResponses []UserResponse `gorm:"foreignKey:OptionID"`
 }
 
 func GetOptionByID(id uint) (OptionTable, error) {
@@ -17,5 +16,17 @@ func GetOptionByID(id uint) (OptionTable, error) {
 	}
 
 	return option, nil
+
+}
+
+func GetOptions() ([]OptionTable, error) {
+
+	var options []OptionTable
+
+	if err := DB.Find(&options).Error; err != nil {
+		return options, err
+	}
+
+	return options, nil
 
 }

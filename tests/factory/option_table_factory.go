@@ -6,15 +6,11 @@ import (
 	"github.com/go-faker/faker/v4"
 )
 
-var OptionTableCounter int
-
 func OptionTableFactory() models.OptionTable {
-	OptionTableCounter++
 	questionTable := models.OptionTable{
 		Text:       faker.Word(),
 		QuestionID: QuestionTableFactory().ID,
 	}
-	questionTable.ID = uint(OptionTableCounter)
 
 	return questionTable
 }

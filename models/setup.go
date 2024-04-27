@@ -13,21 +13,27 @@ import (
 
 var DB *gorm.DB
 
-func TearDownTestDB() {
-	DB.Migrator().DropTable(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
-}
-
 func SetupTestDB() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		fmt.Println("Cannot connect to database sqlite ")
 		log.Fatal("connection error:", err)
 	} else {
 		fmt.Println("We are connected to the database sqlite")
 	}
-
+	DB.Begin()
 	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
+}
+
+func TearDownTestDB() {
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Fatal("connection error:", err)
+	}
+	DB.Rollback()
+	sqlDB.Close()
+
 }
 
 func ConnectDataBase() {
