@@ -107,5 +107,5 @@ func TestRegister(t *testing.T) {
 	models.TearDownTestDB()
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "registration success")
+	assert.Contains(t, rec.Body.String(), "User created successfully")
 }

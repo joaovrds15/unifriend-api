@@ -1,0 +1,127 @@
+basePath: /api
+definitions:
+  controllers.LoginInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  controllers.LoginResponse:
+    properties:
+      token:
+        example: a34ojfds0cidsaokdjcdojfi
+        type: string
+    type: object
+  controllers.RegisterInput:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      major_id:
+        type: integer
+      password:
+        type: string
+      profile_picture_url:
+        type: string
+      re_password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - major_id
+    - password
+    - re_password
+    - username
+    type: object
+  controllers.RegisterResponse:
+    properties:
+      message:
+        example: User created successfully
+        type: string
+    type: object
+host: localhost:8090
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for UniFriend application
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: UniFriend API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: do ping
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: ping route
+      tags:
+      - health
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: login input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.LoginResponse'
+        "400":
+          description: Invalid Data
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register
+      parameters:
+      - description: register input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.RegisterResponse'
+        "400":
+          description: Invalid Data
+      tags:
+      - auth
+swagger: "2.0"

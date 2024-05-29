@@ -28,13 +28,19 @@ func GetUserByID(uid uint) (User, error) {
 	var u User
 
 	if err := DB.First(&u, uid).Error; err != nil {
-		return u, errors.New("User not found!")
+		return u, errors.New("User not found")
 	}
 
 	u.PrepareGive()
 
 	return u, nil
 
+}
+
+func UsernameAlreadyUsed(username string) bool {
+	var count int64
+	DB.Model(&User{}).Where("username = ?", username).Count(&count)
+	return count > 0
 }
 
 func (u *User) PrepareGive() {

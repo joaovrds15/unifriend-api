@@ -23,6 +23,22 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RegisterResponse struct {
+	Message string `json:"message" example:"User created successfully"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token" example:"a34ojfds0cidsaokdjcdojfi"`
+}
+
+// @Description	Register
+// @Accept			json
+// @Tags			auth
+// @Produce		json
+// @Param			input	body		RegisterInput	true	"register input"
+// @Success		200		{object}	controllers.RegisterResponse
+// @Failure		400		"Invalid Data"
+// @Router			/register [post]
 func Register(c *gin.Context) {
 
 	var input RegisterInput
@@ -30,6 +46,10 @@ func Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if models.UsernameAlreadyUsed(input.Username) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong"})
 	}
 
 	u := models.User{}
@@ -54,9 +74,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "registration success"})
+	c.JSON(http.StatusOK, RegisterResponse{Message: "User created successfully"})
 }
 
+// @Description	Login
+// @Accept			json
+// @Tags			auth
+// @Produce		json
+// @Param			input	body		LoginInput	true	"login input"
+// @Success		200		{object}	controllers.LoginResponse
+// @Failure		400		"Invalid Data"
+// @Router			/login [post]
 func Login(c *gin.Context) {
 
 	var input LoginInput
@@ -78,6 +106,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, LoginResponse{Token: token})
 
 }
