@@ -50,6 +50,7 @@ func Register(c *gin.Context) {
 
 	if models.UsernameAlreadyUsed(input.Username) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong"})
+		return
 	}
 
 	u := models.User{}

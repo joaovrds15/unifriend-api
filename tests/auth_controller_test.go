@@ -8,6 +8,7 @@ import (
 	"testing"
 	"unifriend-api/models"
 	"unifriend-api/routes"
+	"unifriend-api/tests/factory"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -108,4 +109,38 @@ func TestRegister(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
+}
+
+func TestRegisterWithDuplicatedUsername(t *testing.T) {
+	router := gin.Default()
+	models.SetupTestDB()
+	routes.SetupRoutes(router)
+
+	major := factory.MajorFactory()
+	user := factory.UserFactory()
+	user.Username = "testuser"
+
+	models.DB.Create(&major)
+	models.DB.Create(&user)
+
+	payload := []byte(`{
+		"username": "testuser",
+		"password": "senha", 
+		"re_password" : "senha",
+		"major_id": 1,
+		"email": "testemail@mail.com",
+		"first_name": "test",
+		"last_name": "user",
+		"profile_picture_url": "http://test.com"
+	}`)
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+	models.TearDownTestDB()
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "something went wrong")
 }
