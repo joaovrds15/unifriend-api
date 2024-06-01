@@ -1,0 +1,208 @@
+basePath: /api
+definitions:
+  controllers.Answer:
+    properties:
+      questionID:
+        type: integer
+      selectedOptionID:
+        type: integer
+    required:
+    - questionID
+    - selectedOptionID
+    type: object
+  controllers.LoginInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  controllers.LoginResponse:
+    properties:
+      token:
+        example: a34ojfds0cidsaokdjcdojfi
+        type: string
+    type: object
+  controllers.RegisterInput:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      major_id:
+        type: integer
+      password:
+        type: string
+      profile_picture_url:
+        type: string
+      re_password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - major_id
+    - password
+    - re_password
+    - username
+    type: object
+  controllers.RegisterResponse:
+    properties:
+      message:
+        example: User created successfully
+        type: string
+    type: object
+  controllers.SaveAnswerResponse:
+    properties:
+      message:
+        example: answers saved successfully
+        type: string
+    type: object
+  controllers.SaveAnswersInput:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/controllers.Answer'
+        type: array
+      quiz_id:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - answers
+    - quiz_id
+    - user_id
+    type: object
+host: localhost:8090
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for UniFriend application
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: UniFriend API
+  version: "1.0"
+paths:
+  /answer/save:
+    post:
+      consumes:
+      - application/json
+      description: SaveAnswers
+      parameters:
+      - description: save answers input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.SaveAnswersInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.RegisterResponse'
+        "400":
+          description: Invalid Data
+      security:
+      - Bearer: []
+      tags:
+      - quiz
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: do ping
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: ping route
+      tags:
+      - health
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login
+      parameters:
+      - description: login input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.LoginResponse'
+        "400":
+          description: Invalid Data
+        "401":
+          description: username or password is incorrect.
+      tags:
+      - auth
+  /questions:
+    get:
+      consumes:
+      - application/json
+      description: Get Quiz questions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.SaveAnswerResponse'
+        "500":
+          description: Something went wrong
+      security:
+      - Bearer: []
+      tags:
+      - quiz
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register
+      parameters:
+      - description: register input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.RegisterResponse'
+        "400":
+          description: Invalid Data
+      tags:
+      - auth
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

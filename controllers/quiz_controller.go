@@ -18,23 +18,34 @@ type Answer struct {
 	SelectedOptionID uint `json:"selectedOptionID" binding:"required"`
 }
 
+type SaveAnswerResponse struct {
+	Message string `json:"message" example:"answers saved successfully"`
+}
 type OptionsformatForResponse struct {
-	Id   uint   `json:"id"`
-	Text string `json:"option_text"`
+	Id   uint   `json:"id" example:"1"`
+	Text string `json:"option_text" example:"clubbing"`
 }
 
 type QuestionResponseFormat struct {
-	Id      uint                       `json:"id"`
-	Text    string                     `json:"text"`
-	QuizId  uint                       `json:"quiz_id"`
+	Id      uint                       `json:"id" example:"1"`
+	Text    string                     `json:"text" example:"Best Place to go out on weekends?"`
+	QuizId  uint                       `json:"quiz_id" example:"1"`
 	Options []OptionsformatForResponse `json:"options"`
 }
 
+// @Description	Get Quiz questions
+// @Accept			json
+// @Tags			quiz
+// @Produce		json
+// @Security		Bearer
+// @Success		200	{object}	controllers.SaveAnswerResponse
+// @Failure		500	"Something went wrong"
+// @Router			/questions [get]
 func GetQuestions(c *gin.Context) {
 	questions, err := models.GetQuestions()
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -64,10 +75,23 @@ func GetQuestions(c *gin.Context) {
 		}
 		questionsResponse = append(questionsResponse, response)
 	}
+	if questionsResponse == nil {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 
 	c.JSON(http.StatusOK, questionsResponse)
 }
 
+// @Description	SaveAnswers
+// @Accept			json
+// @Tags			quiz
+// @Produce		json
+// @Param			input	body		SaveAnswersInput	true	"Save answers input"
+// @Success		200		{object}	controllers.RegisterResponse
+// @Failure		400		"Invalid Data"
+// @Security		Bearer
+// @Router			/answer/save [post]
 func SaveAnswers(c *gin.Context) {
 	var input SaveAnswersInput
 
@@ -98,7 +122,7 @@ func SaveAnswers(c *gin.Context) {
 		}
 
 		if option.QuestionID != question.ID {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "selected option does not belong to the question"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "selected option does not belong to this question"})
 			return
 		}
 
@@ -111,5 +135,5 @@ func SaveAnswers(c *gin.Context) {
 		userResponse.SaveUserResponse()
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "answers saved successfully"})
+	c.JSON(http.StatusCreated, SaveAnswerResponse{})
 }
