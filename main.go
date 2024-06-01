@@ -24,6 +24,10 @@ import (
 //	@host		localhost:8090
 //	@BasePath	/api
 
+//	@SecurityDefinitions.apiKey	Bearer
+//	@in							header
+//	@name						Authorization
+
 func main() {
 	r := gin.Default()
 

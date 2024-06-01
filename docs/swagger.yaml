@@ -1,5 +1,15 @@
 basePath: /api
 definitions:
+  controllers.Answer:
+    properties:
+      questionID:
+        type: integer
+      selectedOptionID:
+        type: integer
+    required:
+    - questionID
+    - selectedOptionID
+    type: object
   controllers.LoginInput:
     properties:
       password:
@@ -49,6 +59,27 @@ definitions:
         example: User created successfully
         type: string
     type: object
+  controllers.SaveAnswerResponse:
+    properties:
+      message:
+        example: answers saved successfully
+        type: string
+    type: object
+  controllers.SaveAnswersInput:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/controllers.Answer'
+        type: array
+      quiz_id:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - answers
+    - quiz_id
+    - user_id
+    type: object
 host: localhost:8090
 info:
   contact:
@@ -63,6 +94,31 @@ info:
   title: UniFriend API
   version: "1.0"
 paths:
+  /answer/save:
+    post:
+      consumes:
+      - application/json
+      description: SaveAnswers
+      parameters:
+      - description: save answers input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.SaveAnswersInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.RegisterResponse'
+        "400":
+          description: Invalid Data
+      security:
+      - Bearer: []
+      tags:
+      - quiz
   /health:
     get:
       consumes:
@@ -101,6 +157,24 @@ paths:
           description: Invalid Data
       tags:
       - auth
+  /questions:
+    get:
+      consumes:
+      - application/json
+      description: Get Quiz questions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.SaveAnswerResponse'
+        "500":
+          description: Something went wrong
+      security:
+      - Bearer: []
+      tags:
+      - quiz
   /register:
     post:
       consumes:
@@ -124,4 +198,9 @@ paths:
           description: Invalid Data
       tags:
       - auth
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

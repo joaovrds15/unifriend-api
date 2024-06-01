@@ -24,6 +24,47 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/answer/save": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "SaveAnswers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz"
+                ],
+                "parameters": [
+                    {
+                        "description": "save answers input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.SaveAnswersInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Data"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "do ping",
@@ -83,6 +124,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/questions": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get Quiz questions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "quiz"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.SaveAnswerResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Something went wrong"
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
                 "description": "Register",
@@ -121,6 +192,21 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.Answer": {
+            "type": "object",
+            "required": [
+                "questionID",
+                "selectedOptionID"
+            ],
+            "properties": {
+                "questionID": {
+                    "type": "integer"
+                },
+                "selectedOptionID": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.LoginInput": {
             "type": "object",
             "required": [
@@ -191,6 +277,44 @@ const docTemplate = `{
                     "example": "User created successfully"
                 }
             }
+        },
+        "controllers.SaveAnswerResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "answers saved successfully"
+                }
+            }
+        },
+        "controllers.SaveAnswersInput": {
+            "type": "object",
+            "required": [
+                "answers",
+                "quiz_id",
+                "user_id"
+            ],
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controllers.Answer"
+                    }
+                },
+                "quiz_id": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
