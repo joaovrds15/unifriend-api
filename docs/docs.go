@@ -120,6 +120,9 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid Data"
+                    },
+                    "401": {
+                        "description": "username or password is incorrect."
                     }
                 }
             }

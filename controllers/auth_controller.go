@@ -31,14 +31,14 @@ type LoginResponse struct {
 	Token string `json:"token" example:"a34ojfds0cidsaokdjcdojfi"`
 }
 
-// @Description	Register
-// @Accept			json
-// @Tags			auth
-// @Produce		json
-// @Param			input	body		RegisterInput	true	"register input"
-// @Success		200		{object}	controllers.RegisterResponse
-// @Failure		400		"Invalid Data"
-// @Router			/register [post]
+//	@Description	Register
+//	@Accept			json
+//	@Tags			auth
+//	@Produce		json
+//	@Param			input	body		RegisterInput	true	"register input"
+//	@Success		200		{object}	controllers.RegisterResponse
+//	@Failure		400		"Invalid Data"
+//	@Router			/register [post]
 func Register(c *gin.Context) {
 
 	var input RegisterInput
@@ -78,14 +78,15 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, RegisterResponse{Message: "User created successfully"})
 }
 
-// @Description	Login
-// @Accept			json
-// @Tags			auth
-// @Produce		json
-// @Param			input	body		LoginInput	true	"login input"
-// @Success		200		{object}	controllers.LoginResponse
-// @Failure		400		"Invalid Data"
-// @Router			/login [post]
+//	@Description	Login
+//	@Accept			json
+//	@Tags			auth
+//	@Produce		json
+//	@Param			input	body		LoginInput	true	"login input"
+//	@Success		200		{object}	controllers.LoginResponse
+//	@Failure		400		"Invalid Data"
+//	@Failure		401		"username or password is incorrect.""
+//	@Router			/login [post]
 func Login(c *gin.Context) {
 
 	var input LoginInput

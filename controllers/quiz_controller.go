@@ -87,7 +87,7 @@ func GetQuestions(c *gin.Context) {
 // @Accept			json
 // @Tags			quiz
 // @Produce		json
-// @Param			input	body		SaveAnswersInput	true	"save answers input"
+// @Param			input	body		SaveAnswersInput	true	"Save answers input"
 // @Success		200		{object}	controllers.RegisterResponse
 // @Failure		400		"Invalid Data"
 // @Security		Bearer
