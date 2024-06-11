@@ -43,7 +43,7 @@ const docTemplate = `{
                 ],
                 "parameters": [
                     {
-                        "description": "save answers input",
+                        "description": "Save answers input",
                         "name": "input",
                         "in": "body",
                         "required": true,

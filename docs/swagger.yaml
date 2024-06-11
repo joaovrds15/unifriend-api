@@ -100,7 +100,7 @@ paths:
       - application/json
       description: SaveAnswers
       parameters:
-      - description: save answers input
+      - description: Save answers input
         in: body
         name: input
         required: true
