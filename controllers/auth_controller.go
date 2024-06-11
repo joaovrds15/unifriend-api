@@ -8,18 +8,16 @@ import (
 )
 
 type RegisterInput struct {
-	Username          string `json:"username" binding:"required"`
 	Password          string `json:"password" binding:"required"`
 	RePassword        string `json:"re_password" binding:"required"`
 	Email             string `json:"email" binding:"required"`
-	FirstName         string `json:"first_name" binding:"required"`
-	LastName          string `json:"last_name" binding:"required"`
+	Name              string `json:"name" binding:"required"`
 	ProfilePictureURL string `json:"profile_picture_url"`
 	MajorID           uint   `json:"major_id" binding:"required"`
 }
 
 type LoginInput struct {
-	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -31,14 +29,14 @@ type LoginResponse struct {
 	Token string `json:"token" example:"a34ojfds0cidsaokdjcdojfi"`
 }
 
-//	@Description	Register
-//	@Accept			json
-//	@Tags			auth
-//	@Produce		json
-//	@Param			input	body		RegisterInput	true	"register input"
-//	@Success		200		{object}	controllers.RegisterResponse
-//	@Failure		400		"Invalid Data"
-//	@Router			/register [post]
+// @Description	Register
+// @Accept			json
+// @Tags			auth
+// @Produce		json
+// @Param			input	body		RegisterInput	true	"register input"
+// @Success		200		{object}	controllers.RegisterResponse
+// @Failure		400		"Invalid Data"
+// @Router			/register [post]
 func Register(c *gin.Context) {
 
 	var input RegisterInput
@@ -48,7 +46,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if models.UsernameAlreadyUsed(input.Username) {
+	if models.UsernameAlreadyUsed(input.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong"})
 		return
 	}
@@ -60,11 +58,9 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	u.Username = input.Username
 	u.Password = input.Password
 	u.Email = input.Email
-	u.FirstName = input.FirstName
-	u.LastName = input.LastName
+	u.Name = input.Name
 	u.ProfilePictureURL = input.ProfilePictureURL
 	u.MajorID = input.MajorID
 
@@ -78,15 +74,15 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, RegisterResponse{Message: "User created successfully"})
 }
 
-//	@Description	Login
-//	@Accept			json
-//	@Tags			auth
-//	@Produce		json
-//	@Param			input	body		LoginInput	true	"login input"
-//	@Success		200		{object}	controllers.LoginResponse
-//	@Failure		400		"Invalid Data"
-//	@Failure		401		"username or password is incorrect.""
-//	@Router			/login [post]
+// @Description	Login
+// @Accept			json
+// @Tags			auth
+// @Produce		json
+// @Param			input	body		LoginInput	true	"login input"
+// @Success		200		{object}	controllers.LoginResponse
+// @Failure		400		"Invalid Data"
+// @Failure		401		"email or password is incorrect.""
+// @Router			/login [post]
 func Login(c *gin.Context) {
 
 	var input LoginInput
@@ -98,10 +94,10 @@ func Login(c *gin.Context) {
 
 	u := models.User{}
 
-	u.Username = input.Username
+	u.Email = input.Email
 	u.Password = input.Password
 
-	token, err := models.LoginCheck(u.Username, u.Password)
+	token, err := models.LoginCheck(u.Email, u.Password)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "username or password is incorrect."})

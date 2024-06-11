@@ -25,15 +25,13 @@ func TestLoginWithWrongCredentials(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	user := models.User{
-		Username: "testuser",
-		Password: "password",
-		MajorID:  major.ID,
-	}
+	user := factory.UserFactory()
+	user.Email = "teste@mail.com"
+	user.Password = "wrong"
 
 	models.DB.Create(&user)
 
-	payload := []byte(`{"username": "testuser", "password": "senha"}`)
+	payload := []byte(`{"email": "teste@mail.com", "password": "right"}`)
 	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -58,14 +56,13 @@ func TestLogin(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	user := models.User{
-		Username: "testuser",
-		Password: "senha",
-		MajorID:  major.ID,
-	}
+	user := factory.UserFactory()
+	user.Email = "test@mail.com"
+
+	user.Password = "right"
 
 	models.DB.Create(&user)
-	payload := []byte(`{"username": "testuser", "password": "senha"}`)
+	payload := []byte(`{"email": "test@mail.com", "password": "right"}`)
 	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -90,13 +87,11 @@ func TestRegister(t *testing.T) {
 	models.DB.Create(&major)
 
 	payload := []byte(`{
-		"username": "testuser",
 		"password": "senha", 
 		"re_password" : "senha",
 		"major_id": 1,
 		"email": "testemail@mail.com",
-		"first_name": "test",
-		"last_name": "user",
+		"name": "test user",
 		"profile_picture_url": "http://test.com"
 	}`)
 	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
@@ -111,26 +106,24 @@ func TestRegister(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
 
-func TestRegisterWithDuplicatedUsername(t *testing.T) {
+func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	router := gin.Default()
 	models.SetupTestDB()
 	routes.SetupRoutes(router)
 
 	major := factory.MajorFactory()
 	user := factory.UserFactory()
-	user.Username = "testuser"
+	user.Email = "testuser@mail.com"
 
 	models.DB.Create(&major)
 	models.DB.Create(&user)
 
 	payload := []byte(`{
-		"username": "testuser",
 		"password": "senha", 
 		"re_password" : "senha",
 		"major_id": 1,
-		"email": "testemail@mail.com",
-		"first_name": "test",
-		"last_name": "user",
+		"email": "testuser@mail.com",
+		"name": "test user",
 		"profile_picture_url": "http://test.com"
 	}`)
 	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
