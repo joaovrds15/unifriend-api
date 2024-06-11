@@ -10,11 +10,9 @@ import (
 
 func UserFactory() models.User {
 	user := models.User{
-		Username:          faker.Username(),
-		Password:          faker.Password(),
 		Email:             faker.Email(),
-		FirstName:         faker.FirstName(),
-		LastName:          faker.LastName(),
+		Password:          faker.Password(),
+		Name:              faker.Name(),
 		ProfilePictureURL: faker.URL(),
 		IsAdmin:           false,
 		MajorID:           MajorFactory().ID,

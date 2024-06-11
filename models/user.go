@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"html"
 	"strings"
 	"unifriend-api/utils/token"
 
@@ -12,11 +11,9 @@ import (
 
 type User struct {
 	ID                uint   `json:"id" gorm:"primaryKey"`
-	Username          string `json:"username" gorm:"size:255;not null;unique"`
-	Password          string `json:"password" gorm:"size:100;not null"`
 	Email             string `gorm:"size:100;unique;not null"`
-	FirstName         string `gorm:"size:100;not null"`
-	LastName          string `gorm:"size:100;not null"`
+	Password          string `json:"password" gorm:"size:100;not null"`
+	Name              string `gorm:"size:100;not null"`
 	ProfilePictureURL string `gorm:"size:255"`
 	IsAdmin           bool   `gorm:"default:false"`
 	MajorID           uint
@@ -37,9 +34,9 @@ func GetUserByID(uid uint) (User, error) {
 
 }
 
-func UsernameAlreadyUsed(username string) bool {
+func UsernameAlreadyUsed(email string) bool {
 	var count int64
-	DB.Model(&User{}).Where("username = ?", username).Count(&count)
+	DB.Model(&User{}).Where("email = ?", email).Count(&count)
 	return count > 0
 }
 
@@ -62,7 +59,7 @@ func (u *User) BeforeSave(DB *gorm.DB) error {
 		return err
 	}
 	u.Password = string(hashedPassword)
-	u.Username = html.EscapeString(strings.TrimSpace(u.Username))
+	u.Email = strings.TrimSpace(u.Email)
 
 	return nil
 }
@@ -71,12 +68,12 @@ func VerifyPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func LoginCheck(username string, password string) (string, error) {
+func LoginCheck(email string, password string) (string, error) {
 	var err error
 
 	u := User{}
 
-	err = DB.Model(User{}).Where("username = ?", username).Take(&u).Error
+	err = DB.Model(User{}).Where("email = ?", email).Take(&u).Error
 
 	if err != nil {
 		return "", err
