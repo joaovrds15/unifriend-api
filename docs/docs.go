@@ -122,7 +122,7 @@ const docTemplate = `{
                         "description": "Invalid Data"
                     },
                     "401": {
-                        "description": "username or password is incorrect."
+                        "description": "email or password is incorrect."
                     }
                 }
             }
@@ -213,14 +213,14 @@ const docTemplate = `{
         "controllers.LoginInput": {
             "type": "object",
             "required": [
-                "password",
-                "username"
+                "email",
+                "password"
             ],
             "properties": {
-                "password": {
+                "email": {
                     "type": "string"
                 },
-                "username": {
+                "password": {
                     "type": "string"
                 }
             }
@@ -238,25 +238,20 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
-                "first_name",
-                "last_name",
                 "major_id",
+                "name",
                 "password",
-                "re_password",
-                "username"
+                "re_password"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
-                "first_name": {
-                    "type": "string"
-                },
-                "last_name": {
-                    "type": "string"
-                },
                 "major_id": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "password": {
                     "type": "string"
@@ -265,9 +260,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "re_password": {
-                    "type": "string"
-                },
-                "username": {
                     "type": "string"
                 }
             }
