@@ -38,7 +38,7 @@ type QuestionResponseFormat struct {
 // @Tags			quiz
 // @Produce		json
 // @Security		Bearer
-// @Success		200	{object}	controllers.SaveAnswerResponse
+// @Success		200	{object}	controllers.QuestionResponseFormat
 // @Failure		500	"Something went wrong"
 // @Router			/questions [get]
 func GetQuestions(c *gin.Context) {
@@ -51,7 +51,7 @@ func GetQuestions(c *gin.Context) {
 
 	options, err := models.GetOptions()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -75,6 +75,7 @@ func GetQuestions(c *gin.Context) {
 		}
 		questionsResponse = append(questionsResponse, response)
 	}
+
 	if questionsResponse == nil {
 		c.JSON(http.StatusOK, gin.H{})
 		return
@@ -88,8 +89,9 @@ func GetQuestions(c *gin.Context) {
 // @Tags			quiz
 // @Produce		json
 // @Param			input	body		SaveAnswersInput	true	"Save answers input"
-// @Success		200		{object}	controllers.RegisterResponse
+// @Success		201		{object}	controllers.SaveAnswerResponse
 // @Failure		400		"Invalid Data"
+// @Failure		500	"Something went wrong"
 // @Security		Bearer
 // @Router			/answer/save [post]
 func SaveAnswers(c *gin.Context) {
@@ -111,7 +113,7 @@ func SaveAnswers(c *gin.Context) {
 		question, err := models.GetQuestionByID(answer.QuestionID)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 

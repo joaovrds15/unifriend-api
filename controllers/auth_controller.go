@@ -34,7 +34,7 @@ type LoginResponse struct {
 // @Tags			auth
 // @Produce		json
 // @Param			input	body		RegisterInput	true	"register input"
-// @Success		200		{object}	controllers.RegisterResponse
+// @Success		201		{object}	controllers.RegisterResponse
 // @Failure		400		"Invalid Data"
 // @Router			/register [post]
 func Register(c *gin.Context) {
@@ -71,7 +71,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, RegisterResponse{Message: "User created successfully"})
+	c.JSON(http.StatusCreated, RegisterResponse{Message: "User created successfully"})
 }
 
 // @Description	Login
