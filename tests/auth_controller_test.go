@@ -102,7 +102,7 @@ func TestRegister(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	models.TearDownTestDB()
 
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
 
