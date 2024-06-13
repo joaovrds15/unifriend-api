@@ -53,14 +53,17 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterResponse"
+                            "$ref": "#/definitions/controllers.SaveAnswerResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid Data"
+                    },
+                    "500": {
+                        "description": "Something went wrong"
                     }
                 }
             }
@@ -148,7 +151,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.SaveAnswerResponse"
+                            "$ref": "#/definitions/controllers.QuestionResponseFormat"
                         }
                     },
                     "500": {
@@ -181,8 +184,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/controllers.RegisterResponse"
                         }
@@ -231,6 +234,42 @@ const docTemplate = `{
                 "token": {
                     "type": "string",
                     "example": "a34ojfds0cidsaokdjcdojfi"
+                }
+            }
+        },
+        "controllers.OptionsformatForResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "option_text": {
+                    "type": "string",
+                    "example": "clubbing"
+                }
+            }
+        },
+        "controllers.QuestionResponseFormat": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/controllers.OptionsformatForResponse"
+                    }
+                },
+                "quiz_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "text": {
+                    "type": "string",
+                    "example": "Best Place to go out on weekends?"
                 }
             }
         },

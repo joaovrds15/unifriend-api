@@ -26,6 +26,31 @@ definitions:
         example: a34ojfds0cidsaokdjcdojfi
         type: string
     type: object
+  controllers.OptionsformatForResponse:
+    properties:
+      id:
+        example: 1
+        type: integer
+      option_text:
+        example: clubbing
+        type: string
+    type: object
+  controllers.QuestionResponseFormat:
+    properties:
+      id:
+        example: 1
+        type: integer
+      options:
+        items:
+          $ref: '#/definitions/controllers.OptionsformatForResponse'
+        type: array
+      quiz_id:
+        example: 1
+        type: integer
+      text:
+        example: Best Place to go out on weekends?
+        type: string
+    type: object
   controllers.RegisterInput:
     properties:
       email:
@@ -103,12 +128,14 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
-            $ref: '#/definitions/controllers.RegisterResponse'
+            $ref: '#/definitions/controllers.SaveAnswerResponse'
         "400":
           description: Invalid Data
+        "500":
+          description: Something went wrong
       security:
       - Bearer: []
       tags:
@@ -164,7 +191,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.SaveAnswerResponse'
+            $ref: '#/definitions/controllers.QuestionResponseFormat'
         "500":
           description: Something went wrong
       security:
@@ -186,8 +213,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/controllers.RegisterResponse'
         "400":
