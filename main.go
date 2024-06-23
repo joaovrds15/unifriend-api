@@ -6,6 +6,7 @@ import (
 
 	_ "unifriend-api/docs"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,12 +32,9 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Connect to the database
 	models.ConnectDataBase()
-
-	// Configure routes
+	r.Use(cors.Default())
 	routes.SetupRoutes(r)
 
-	// Run the server on port 8090
 	r.Run(":8090")
 }
