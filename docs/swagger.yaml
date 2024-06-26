@@ -10,6 +10,13 @@ definitions:
     - questionID
     - selectedOptionID
     type: object
+  controllers.GetMajorsReponse:
+    properties:
+      majors:
+        items:
+          $ref: '#/definitions/models.Major'
+        type: array
+    type: object
   controllers.LoginInput:
     properties:
       email:
@@ -99,6 +106,13 @@ definitions:
     - quiz_id
     - user_id
     type: object
+  models.Major:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
 host: localhost:8090
 info:
   contact:
@@ -180,6 +194,20 @@ paths:
           description: email or password is incorrect.
       tags:
       - auth
+  /majors:
+    get:
+      consumes:
+      - application/json
+      description: get all majors registered
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.GetMajorsReponse'
+      tags:
+      - major
   /questions:
     get:
       consumes:

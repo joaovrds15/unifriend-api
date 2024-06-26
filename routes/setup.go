@@ -20,6 +20,7 @@ func SetupRoutes(r *gin.Engine) {
 	public.POST("/register", controllers.Register)
 	public.POST("/login", controllers.Login)
 	public.GET("/health", Ping)
+	public.GET("/majors", controllers.GetMajors)
 	public.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 }
 
