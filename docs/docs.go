@@ -130,6 +130,28 @@ const docTemplate = `{
                 }
             }
         },
+        "/majors": {
+            "get": {
+                "description": "get all majors registered",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "major"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.GetMajorsReponse"
+                        }
+                    }
+                }
+            }
+        },
         "/questions": {
             "get": {
                 "security": [
@@ -210,6 +232,17 @@ const docTemplate = `{
                 },
                 "selectedOptionID": {
                     "type": "integer"
+                }
+            }
+        },
+        "controllers.GetMajorsReponse": {
+            "type": "object",
+            "properties": {
+                "majors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Major"
+                    }
                 }
             }
         },
@@ -340,6 +373,17 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.Major": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         }
