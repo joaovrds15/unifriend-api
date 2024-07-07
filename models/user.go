@@ -45,7 +45,7 @@ func (u *User) PrepareGive() {
 }
 
 func (u *User) SaveUser() (*User, error) {
-	err := DB.Create(&u).Error
+	err := DB.Save(&u).Error
 	if err != nil {
 		return &User{}, err
 	}

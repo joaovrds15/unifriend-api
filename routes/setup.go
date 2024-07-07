@@ -16,6 +16,7 @@ func SetupRoutes(r *gin.Engine) {
 
 	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)
+	private.POST("/upload-image", controllers.UploadImage)
 
 	public.POST("/register", controllers.Register)
 	public.POST("/login", controllers.Login)
