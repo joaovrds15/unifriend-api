@@ -1,10 +1,10 @@
 package models
 
 type OptionTable struct {
-	ID         uint   `json:"id" gorm:"primaryKey"`
-	Text       string `json:"text" gorm:"size:255;not null"`
-	QuestionID uint   `json:"questionId"`
-	QuestionTable
+	ID            uint          `json:"id" gorm:"primaryKey"`
+	Text          string        `json:"text" gorm:"size:255;not null"`
+	QuestionID    uint          `json:"questionId"`
+	QuestionTable QuestionTable `gorm:"foreignKey:QuestionID"`
 }
 
 func GetOptionByID(id uint) (OptionTable, error) {
