@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"unifriend-api/models"
 
@@ -138,4 +141,29 @@ func SaveAnswers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, SaveAnswerResponse{})
+}
+
+func GetResults(c *gin.Context) {
+	resp, err := http.Get("http://127.0.0.1:8020/calculate-result?user_id=1")
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error")
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response body"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
