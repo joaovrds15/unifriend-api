@@ -109,6 +109,7 @@ func TestSaveAnswers(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/api/answer/save", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+factory.GetUserFactoryToken(user.ID))
+
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)

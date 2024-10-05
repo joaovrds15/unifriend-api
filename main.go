@@ -33,7 +33,13 @@ func main() {
 	r := gin.Default()
 
 	models.ConnectDataBase()
-	r.Use(cors.Default())
+	corsConfig := cors.Config{
+		AllowOrigins:     []string{"*"}, // Your React app's URL
+		AllowMethods:     []string{"GET", "POST"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowCredentials: true,
+	}
+	r.Use(cors.New(corsConfig))
 	routes.SetupRoutes(r)
 
 	r.Run(":8090")

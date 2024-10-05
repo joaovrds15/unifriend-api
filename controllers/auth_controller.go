@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"os"
+	"strconv"
 	"unifriend-api/models"
 
 	"github.com/gin-gonic/gin"
@@ -98,6 +100,19 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "username or password is incorrect."})
 		return
 	}
+
+	tokenLifespanStr := os.Getenv("TOKEN_HOUR_LIFESPAN")
+	tokenLifespan, _ := strconv.Atoi(tokenLifespanStr)
+
+	c.SetCookie(
+		"auth_token",
+		token,
+		tokenLifespan*3600,
+		"",
+		"",
+		false,
+		true,
+	)
 
 	c.JSON(http.StatusOK, LoginResponse{Token: token})
 
