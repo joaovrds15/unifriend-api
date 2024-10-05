@@ -35,7 +35,7 @@ func main() {
 
 	models.ConnectDataBase()
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"34.95.247.72"}, // Replace with your frontend URL
+		AllowOrigins:     []string{"34.95.247.72:3000"}, // Replace with your frontend URL
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
