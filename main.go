@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
 	"unifriend-api/models"
 	"unifriend-api/routes"
 
@@ -34,10 +35,12 @@ func main() {
 
 	models.ConnectDataBase()
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"*"}, // Your React app's URL
-		AllowMethods:     []string{"GET", "POST"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowOrigins:     []string{"http://34.95.247.72:3000"}, // Replace with your frontend URL
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}
 	r.Use(cors.New(corsConfig))
 	routes.SetupRoutes(r)
