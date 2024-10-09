@@ -7,17 +7,14 @@ import (
 	"os"
 	"testing"
 	"unifriend-api/models"
-	"unifriend-api/routes"
 	"unifriend-api/tests/factory"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoginWithWrongCredentials(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	major := models.Major{
 		Name: "Computer Science",
@@ -38,16 +35,15 @@ func TestLoginWithWrongCredentials(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
-	models.TearDownTestDB()
 
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
 }
 
 func TestLogin(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
 	os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
 
 	major := models.Major{
@@ -69,16 +65,14 @@ func TestLogin(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
-	models.TearDownTestDB()
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "token")
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+	assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
 }
 
 func TestRegister(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	major := models.Major{
 		Name: "Computer Science",
@@ -100,16 +94,14 @@ func TestRegister(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
-	models.TearDownTestDB()
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
 
 func TestRegisterWithDuplicatedEmail(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	major := factory.MajorFactory()
 	user := factory.UserFactory()
@@ -132,7 +124,6 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
-	models.TearDownTestDB()
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "something went wrong")

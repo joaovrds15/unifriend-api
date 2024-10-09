@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"net/http"
+	"os"
+	"strconv"
 	"unifriend-api/models"
 
 	"github.com/gin-gonic/gin"
@@ -99,6 +101,18 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
+	tokenLifespanStr := os.Getenv("TOKEN_HOUR_LIFESPAN")
+	tokenLifespan, _ := strconv.Atoi(tokenLifespanStr)
 
+	c.SetCookie(
+		"auth_token",
+		token,
+		tokenLifespan*3600,
+		"/",
+		os.Getenv("CLIENT_DOMAIN"),
+		os.Getenv("GIN_MODE") == "release",
+		true,
+	)
+
+	c.Status(http.StatusNoContent)
 }
