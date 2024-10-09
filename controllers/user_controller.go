@@ -13,6 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type ImageUploadInput struct {
+	File   *multipart.FileHeader `form:"file" binding:"required"`
+	UserId string                `form:"user_id" binding:"required"`
+}
 type RegisterInput struct {
 	Password          string `json:"password" binding:"required"`
 	RePassword        string `json:"re_password" binding:"required"`
@@ -20,11 +24,6 @@ type RegisterInput struct {
 	Name              string `json:"name" binding:"required"`
 	ProfilePictureURL string `json:"profile_picture_url"`
 	MajorID           uint   `json:"major_id" binding:"required"`
-}
-
-type ImageUploadInput struct {
-	File   *multipart.FileHeader `form:"file" binding:"required"`
-	UserId string                `form:"user_id" binding:"required"`
 }
 
 type LoginInput struct {
@@ -110,8 +109,20 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
+	tokenLifespanStr := os.Getenv("TOKEN_HOUR_LIFESPAN")
+	tokenLifespan, _ := strconv.Atoi(tokenLifespanStr)
 
+	c.SetCookie(
+		"auth_token",
+		token,
+		tokenLifespan*3600,
+		"/",
+		os.Getenv("CLIENT_DOMAIN"),
+		os.Getenv("GIN_MODE") == "release",
+		true,
+	)
+
+	c.Status(http.StatusNoContent)
 }
 
 func UploadImage(c *gin.Context) {

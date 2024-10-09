@@ -5,17 +5,14 @@ import (
 	"net/http/httptest"
 	"testing"
 	"unifriend-api/models"
-	"unifriend-api/routes"
 	"unifriend-api/tests/factory"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetMajors(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	for i := 0; i < 5; i++ {
 		major := factory.MajorFactory()

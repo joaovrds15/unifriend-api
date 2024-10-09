@@ -8,18 +8,15 @@ import (
 	"path/filepath"
 	"testing"
 	"unifriend-api/models"
-	"unifriend-api/routes"
 	"unifriend-api/tests/factory"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestGetQuestions(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	quiz := factory.QuizTableFactory()
 	user := factory.UserFactory()
@@ -43,7 +40,14 @@ func TestGetQuestions(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/api/questions", nil)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+factory.GetUserFactoryToken(user.ID))
+
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -61,13 +65,11 @@ func TestGetQuestions(t *testing.T) {
 	}
 
 	assert.Equal(t, true, result.Valid())
-	models.TearDownTestDB()
 }
 
 func TestSaveAnswers(t *testing.T) {
-	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	user := factory.UserFactory()
 	quiz := factory.QuizTableFactory()
@@ -108,7 +110,13 @@ func TestSaveAnswers(t *testing.T) {
 
 	req, _ := http.NewRequest("POST", "/api/answer/save", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+factory.GetUserFactoryToken(user.ID))
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
@@ -124,5 +132,4 @@ func TestSaveAnswers(t *testing.T) {
 		count += 5
 	}
 
-	models.TearDownTestDB()
 }
