@@ -108,10 +108,10 @@ func Login(c *gin.Context) {
 		"auth_token",
 		token,
 		tokenLifespan*3600,
-		"/",         // Path
-		"localhost", // Domain
-		false,       // Secure (set to true if using HTTPS)
-		true,        // HttpOnly
+		"/",
+		os.Getenv("CLIENT_DOMAIN"),
+		os.Getenv("GIN_MODE") == "release",
+		true,
 	)
 
 	c.Status(http.StatusNoContent)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"unifriend-api/models"
 	"unifriend-api/routes"
 
@@ -26,10 +27,9 @@ func main() {
 
 	models.ConnectDataBase()
 
-	// Custom CORS configuration
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"POST", "GET"},
+		AllowOrigins:     []string{os.Getenv("CLIENT_DOMAIN")},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Content-Type"},
 		AllowCredentials: true,
 	}
