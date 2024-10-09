@@ -1,22 +1,13 @@
 package main
 
 import (
-	"time"
 	"unifriend-api/models"
 	"unifriend-api/routes"
-
-	_ "unifriend-api/docs"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-//	@title			UniFriend API
-//	@version		1.0
-//	@description	API for UniFriend application
-//	@termsOfService	http://swagger.io/terms/
-
-//	@contact.name	API Support
 //	@contact.url	http://www.swagger.io/support
 //	@contact.email	support@swagger.io
 
@@ -34,14 +25,15 @@ func main() {
 	r := gin.Default()
 
 	models.ConnectDataBase()
+
+	// Custom CORS configuration
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"http://34.95.247.72:3000"}, // Replace with your frontend URL
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"POST", "GET"},
+		AllowHeaders:     []string{"Content-Type"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
 	}
+
 	r.Use(cors.New(corsConfig))
 	routes.SetupRoutes(r)
 

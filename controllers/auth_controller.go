@@ -108,12 +108,11 @@ func Login(c *gin.Context) {
 		"auth_token",
 		token,
 		tokenLifespan*3600,
-		"/",            // Path
-		"34.95.247.72", // Domain
-		false,          // Secure (set to true if using HTTPS)
-		true,           // HttpOnly
+		"/",         // Path
+		"localhost", // Domain
+		false,       // Secure (set to true if using HTTPS)
+		true,        // HttpOnly
 	)
 
-	c.JSON(http.StatusOK, LoginResponse{Token: token})
-
+	c.Status(http.StatusNoContent)
 }
