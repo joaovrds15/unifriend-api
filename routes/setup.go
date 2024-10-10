@@ -1,8 +1,10 @@
 package routes
 
 import (
+	"log"
 	"unifriend-api/controllers"
 	"unifriend-api/middleware"
+	"unifriend-api/services"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -14,9 +16,16 @@ func SetupRoutes(r *gin.Engine) {
 	private := r.Group("/api")
 	private.Use(middleware.AuthMiddleware())
 
+	s3Client, err := services.NewS3Client()
+	if err != nil {
+		log.Fatalf("Failed to create S3 client: %v", err)
+	}
+
 	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)
-	private.POST("/upload-image", controllers.UploadImage)
+	private.POST("/upload-profile-image", func(c *gin.Context) {
+		controllers.UploadProfileImage(c, s3Client)
+	})
 
 	public.POST("/register", controllers.Register)
 	public.POST("/login", controllers.Login)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"unifriend-api/models"
+	"unifriend-api/services"
 	"unifriend-api/utils/aws"
 
 	"github.com/gin-gonic/gin"
@@ -125,7 +126,7 @@ func Login(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func UploadImage(c *gin.Context) {
+func UploadProfileImage(c *gin.Context, uploader services.S3Uploader) {
 	var imageValidator ImageUploadInput
 
 	if err := c.ShouldBind(&imageValidator); err != nil {
@@ -142,7 +143,7 @@ func UploadImage(c *gin.Context) {
 	fileName := UUId.String() + filepath.Ext(imageValidator.File.Filename)
 
 	imageFile, _ := imageValidator.File.Open()
-	uploadResult, err := aws.UploadFileToS3(imageFile, fileName)
+	uploadResult, err := uploader.UploadImage(imageFile, fileName)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
