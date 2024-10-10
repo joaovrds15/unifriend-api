@@ -1,14 +1,23 @@
 package controllers
 
 import (
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"unifriend-api/models"
+	"unifriend-api/services"
+	"unifriend-api/utils/aws"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
+type ImageUploadInput struct {
+	File   *multipart.FileHeader `form:"file" binding:"required"`
+	UserId string                `form:"user_id" binding:"required"`
+}
 type RegisterInput struct {
 	Password          string `json:"password" binding:"required"`
 	RePassword        string `json:"re_password" binding:"required"`
@@ -115,4 +124,72 @@ func Login(c *gin.Context) {
 	)
 
 	c.Status(http.StatusNoContent)
+}
+
+func UploadProfileImage(c *gin.Context, uploader services.S3Uploader) {
+	var imageValidator ImageUploadInput
+
+	if err := c.ShouldBind(&imageValidator); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file and user_id are required"})
+		return
+	}
+
+	if !validateFileUploaded(imageValidator.File) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "could not upload the file"})
+		return
+	}
+
+	UUId := uuid.New()
+	fileName := UUId.String() + filepath.Ext(imageValidator.File.Filename)
+
+	imageFile, _ := imageValidator.File.Open()
+	uploadResult, err := uploader.UploadImage(imageFile, fileName)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+		return
+	}
+
+	userID, _ := strconv.ParseUint(imageValidator.UserId, 10, 32)
+	user, userErr := models.GetUserByID(uint(userID))
+
+	if userErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
+		return
+	}
+
+	user.ProfilePictureURL = uploadResult
+	_, saveUserErr := user.SaveUser()
+
+	if saveUserErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user info"})
+		aws.DeleteFileFromS3(fileName)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "image uploaded succesufuly"})
+}
+
+func validateFileUploaded(header *multipart.FileHeader) bool {
+	fileExtension := verifyFileExtension(header)
+	fileSize := verifyFileSize(header)
+	return fileExtension && fileSize
+}
+
+func verifyFileExtension(header *multipart.FileHeader) bool {
+	fileExtention := filepath.Ext(header.Filename)
+	imageExtensions := []string{".jpeg", ".png", ".jpg"}
+
+	for _, ext := range imageExtensions {
+		if ext == fileExtention {
+			return true
+		}
+	}
+
+	return false
+}
+
+func verifyFileSize(header *multipart.FileHeader) bool {
+	maxSize, _ := strconv.ParseInt(os.Getenv("MAX_SIZE_PROFILE_IMAGE_KB"), 10, 64)
+	return (header.Size / 1000) <= maxSize
 }

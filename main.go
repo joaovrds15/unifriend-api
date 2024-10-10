@@ -9,6 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//	@title			UniFriend API
+//	@version		1.0
+//	@description	API for UniFriend application
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
 //	@contact.url	http://www.swagger.io/support
 //	@contact.email	support@swagger.io
 
