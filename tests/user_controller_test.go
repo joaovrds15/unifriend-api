@@ -233,11 +233,11 @@ func TestLoginWithWrongCredentials(t *testing.T) {
 
 	user := factory.UserFactory()
 	user.Email = "teste@mail.com"
-	user.Password = "wrong"
+	user.Password = "Wrong@passowrd"
 
 	models.DB.Create(&user)
 
-	payload := []byte(`{"email": "teste@mail.com", "password": "right"}`)
+	payload := []byte(`{"email": "teste@mail.com", "password": "Right@Password"}`)
 	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -264,10 +264,10 @@ func TestLogin(t *testing.T) {
 	user := factory.UserFactory()
 	user.Email = "test@mail.com"
 
-	user.Password = "right"
+	user.Password = "Right@Password"
 
 	models.DB.Create(&user)
-	payload := []byte(`{"email": "test@mail.com", "password": "right"}`)
+	payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
 	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -290,8 +290,8 @@ func TestRegister(t *testing.T) {
 	models.DB.Create(&major)
 
 	payload := []byte(`{
-		"password": "senha", 
-		"re_password" : "senha",
+		"password": "Senha@123", 
+		"re_password" : "Senha@123",
 		"major_id": 1,
 		"email": "testemail@mail.com",
 		"name": "test user",
@@ -320,8 +320,8 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	models.DB.Create(&user)
 
 	payload := []byte(`{
-		"password": "senha", 
-		"re_password" : "senha",
+		"password": "Senha@123", 
+		"re_password" : "Senha@123",
 		"major_id": 1,
 		"email": "testuser@mail.com",
 		"name": "test user",
@@ -351,8 +351,8 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 	models.DB.Create(&user)
 
 	payload := []byte(`{
-		"password": "senha", 
-		"re_password" : "senha",
+		"password": "Senha@123", 
+		"re_password" : "Senha@123",
 		"major_id": 1,
 		"email": "newuser@mail.com",
 		"name": "new user",
@@ -368,4 +368,35 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "something went wrong")
+}
+
+func TestRegisterInvalidPassword(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	major := models.Major{
+		Name: "Computer Science",
+	}
+
+	models.DB.Create(&major)
+
+	payload := []byte(`{
+		"password": "Senha123", 
+		"re_password" : "Senha123",
+		"major_id": 1,
+		"email": "testemail@mail.com",
+		"name": "test user",
+		"profile_picture_url": "http://test.com",
+		"phone_number": "62999999999"
+	}`)
+
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Password must be at least 8 characters long, contain at least one uppercase letter, and one special symbol")
 }
