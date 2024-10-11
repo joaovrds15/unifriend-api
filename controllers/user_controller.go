@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"unicode"
 	"unifriend-api/models"
 	"unifriend-api/services"
 	"unifriend-api/utils/aws"
@@ -56,6 +57,11 @@ func Register(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !isValidPassword(input.Password) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 8 characters long, contain at least one uppercase letter, and one special symbol"})
 		return
 	}
 
@@ -195,4 +201,23 @@ func verifyFileExtension(header *multipart.FileHeader) bool {
 func verifyFileSize(header *multipart.FileHeader) bool {
 	maxSize, _ := strconv.ParseInt(os.Getenv("MAX_SIZE_PROFILE_IMAGE_KB"), 10, 64)
 	return (header.Size / 1000) <= maxSize
+}
+
+func isValidPassword(password string) bool {
+	var hasMinLen, hasUpper, hasSpecial, hasNumber bool
+	if len(password) >= 8 {
+		hasMinLen = true
+	}
+
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		case unicode.IsNumber(char):
+			hasNumber = true
+		}
+	}
+	return hasMinLen && hasUpper && hasSpecial && hasNumber
 }
