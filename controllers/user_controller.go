@@ -18,11 +18,13 @@ type ImageUploadInput struct {
 	File   *multipart.FileHeader `form:"file" binding:"required"`
 	UserId string                `form:"user_id" binding:"required"`
 }
+
 type RegisterInput struct {
 	Password          string `json:"password" binding:"required"`
 	RePassword        string `json:"re_password" binding:"required"`
 	Email             string `json:"email" binding:"required"`
 	Name              string `json:"name" binding:"required"`
+	PhoneNumber       string `json:"phone_number" binding:"required"`
 	ProfilePictureURL string `json:"profile_picture_url"`
 	MajorID           uint   `json:"major_id" binding:"required"`
 }
@@ -57,7 +59,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if models.UsernameAlreadyUsed(input.Email) {
+	if models.UsernameAlreadyUsed(input.Email) || models.PhoneNumberAlreadyUsed(input.PhoneNumber) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong"})
 		return
 	}
@@ -74,6 +76,7 @@ func Register(c *gin.Context) {
 	u.Name = input.Name
 	u.ProfilePictureURL = input.ProfilePictureURL
 	u.MajorID = input.MajorID
+	u.PhoneNumber = input.PhoneNumber
 
 	_, err := u.SaveUser()
 

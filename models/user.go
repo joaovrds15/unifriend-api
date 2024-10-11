@@ -16,6 +16,7 @@ type User struct {
 	Name              string `gorm:"size:100;not null"`
 	ProfilePictureURL string `gorm:"size:255"`
 	IsAdmin           bool   `gorm:"default:false"`
+	PhoneNumber       string `gorm:"size:20;unique;not null"`
 	MajorID           uint
 	Major             Major
 }
@@ -37,6 +38,12 @@ func GetUserByID(uid uint) (User, error) {
 func UsernameAlreadyUsed(email string) bool {
 	var count int64
 	DB.Model(&User{}).Where("email = ?", email).Count(&count)
+	return count > 0
+}
+
+func PhoneNumberAlreadyUsed(phoneNumber string) bool {
+	var count int64
+	DB.Model(&User{}).Where("phone_number = ?", phoneNumber).Count(&count)
 	return count > 0
 }
 

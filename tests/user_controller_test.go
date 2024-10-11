@@ -295,7 +295,8 @@ func TestRegister(t *testing.T) {
 		"major_id": 1,
 		"email": "testemail@mail.com",
 		"name": "test user",
-		"profile_picture_url": "http://test.com"
+		"profile_picture_url": "http://test.com",
+		"phone_number": "62999999999"
 	}`)
 	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
@@ -324,7 +325,39 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 		"major_id": 1,
 		"email": "testuser@mail.com",
 		"name": "test user",
-		"profile_picture_url": "http://test.com"
+		"profile_picture_url": "http://test.com",
+		"phone_number": "62999999999"
+	}`)
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "something went wrong")
+}
+
+func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	major := factory.MajorFactory()
+	user := factory.UserFactory()
+	user.PhoneNumber = "62999999999"
+
+	models.DB.Create(&major)
+	models.DB.Create(&user)
+
+	payload := []byte(`{
+		"password": "senha", 
+		"re_password" : "senha",
+		"major_id": 1,
+		"email": "newuser@mail.com",
+		"name": "new user",
+		"profile_picture_url": "http://test.com",
+		"phone_number": "62999999999"
 	}`)
 	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
