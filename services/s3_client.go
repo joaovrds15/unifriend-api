@@ -45,7 +45,7 @@ func NewS3Client() (*S3Client, error) {
 func (s *S3Client) UploadImage(file multipart.File, fileName string) (string, error) {
 	uploader := manager.NewUploader(s.client)
 	result, uploadErr := uploader.Upload(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(os.Getenv("AWS_BUCKET_NAME")),
+		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
 		Body:   file,
 	})

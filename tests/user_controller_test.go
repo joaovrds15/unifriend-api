@@ -2,15 +2,16 @@ package tests
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
 	"testing"
+	"time"
 	"unifriend-api/controllers"
 	"unifriend-api/models"
-	"unifriend-api/routes"
 	"unifriend-api/tests/factory"
 	"unifriend-api/tests/mocks"
 
@@ -19,9 +20,20 @@ import (
 )
 
 func TestUploadImageWithoutImage(t *testing.T) {
+	SetupTestDB()
+	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
+
+	mockUploader := &mocks.MockS3Uploader{
+		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
+			return "https:s3.com.br", nil
+		},
+	}
+
 	router := gin.Default()
-	models.SetupTestDB()
-	routes.SetupRoutes(router)
+
+	router.POST("/api/upload-profile-image", func(c *gin.Context) {
+		controllers.UploadProfileImage(c, mockUploader)
+	})
 
 	user := factory.UserFactory()
 	models.DB.Create(&user)
@@ -53,7 +65,7 @@ func TestUploadImageWithoutImage(t *testing.T) {
 }
 
 func TestUploadImageInvalidExtension(t *testing.T) {
-	models.SetupTestDB()
+	SetupTestDB()
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
 	mockUploader := &mocks.MockS3Uploader{
@@ -109,7 +121,8 @@ func TestUploadImageInvalidExtension(t *testing.T) {
 }
 
 func TestUploadImageSuccess(t *testing.T) {
-	models.SetupTestDB()
+	SetupTestDB()
+
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
 	mockUploader := &mocks.MockS3Uploader{
@@ -165,7 +178,8 @@ func TestUploadImageSuccess(t *testing.T) {
 }
 
 func TestUploadImageBiggerThenLimit(t *testing.T) {
-	models.SetupTestDB()
+	SetupTestDB()
+
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
 	mockUploader := &mocks.MockS3Uploader{
@@ -308,6 +322,7 @@ func TestRegister(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
+
 func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
@@ -399,4 +414,191 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Password must be at least 8 characters long, contain at least one uppercase letter, and one special symbol")
+}
+
+func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
+	SetupTestDB()
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify-email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify-email", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "email parameter is required")
+}
+
+func TestVerifyWithInvalidEmail(t *testing.T) {
+	SetupTestDB()
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/invalidemail.com", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "invalid email")
+}
+
+func TestVerifyWithInvalidEmailDomain(t *testing.T) {
+	SetupTestDB()
+
+	emailDomain := factory.EmailDomainsFactory()
+	invalidEmail := "email@invalid.com"
+	models.DB.Create(&emailDomain)
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/"+invalidEmail, nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "invalid email")
+}
+
+func TestVerifyEmailAwsError(t *testing.T) {
+	SetupTestDB()
+
+	emailDomain := factory.EmailDomainsFactory()
+	validEmail := "email@" + emailDomain.Domain
+	models.DB.Create(&emailDomain)
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return errors.New("AWS SES error: Email sending failed")
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "something went wrong")
+}
+
+func TestVerifyEmailWithValidCode(t *testing.T) {
+	SetupTestDB()
+
+	emailDomain := factory.EmailDomainsFactory()
+	validEmail := "email@" + emailDomain.Domain
+	var emailVerification models.EmailsVerification
+	models.DB.Create(&emailDomain)
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	models.DB.First(&emailVerification, "email = ?", validEmail)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.NotNil(t, emailVerification)
+	assert.Equal(t, time.Now().Add(5*time.Minute).UTC().Truncate(time.Second), emailVerification.Expiration)
+	assert.Contains(t, rec.Body.String(), "email was sent")
+
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "There is already a valid code for this email")
+}
+
+func TestVerifyEmailSuccess(t *testing.T) {
+	SetupTestDB()
+
+	emailDomain := factory.EmailDomainsFactory()
+	validEmail := "email@" + emailDomain.Domain
+	var emailVerification models.EmailsVerification
+	models.DB.Create(&emailDomain)
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	models.DB.First(&emailVerification, "email = ?", validEmail)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.NotNil(t, emailVerification)
+	assert.Equal(t, time.Now().Add(5*time.Minute).UTC().Truncate(time.Second), emailVerification.Expiration)
+	assert.Contains(t, rec.Body.String(), "email was sent")
 }

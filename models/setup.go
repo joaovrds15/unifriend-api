@@ -22,7 +22,7 @@ func SetupTestDB() {
 	}
 
 	DB.Begin()
-	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
+	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{}, &UserResponse{}, &EmailDomains{}, &EmailsVerification{})
 }
 
 func TearDownTestDB() {
@@ -59,6 +59,6 @@ func ConnectDataBase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{})
+	DB.AutoMigrate(&User{}, &Major{}, &OptionTable{}, &QuestionTable{}, &QuizTable{}, &UserResponse{}, &EmailDomains{}, &EmailsVerification{})
 
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"unicode"
 	"unifriend-api/models"
 	"unifriend-api/services"
@@ -13,7 +14,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/exp/rand"
 )
+
+const Subject = "Unifriends Email de verificação"
+const Message = "Seu código de verificação é: "
 
 type ImageUploadInput struct {
 	File   *multipart.FileHeader `form:"file" binding:"required"`
@@ -33,6 +38,10 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type VerifyEmailInput struct {
+	Email string `uri:"email" binding:"required"`
 }
 
 type RegisterResponse struct {
@@ -179,6 +188,38 @@ func UploadProfileImage(c *gin.Context, uploader services.S3Uploader) {
 	c.JSON(http.StatusCreated, gin.H{"message": "image uploaded succesufuly"})
 }
 
+func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
+	var emailVerificationInput VerifyEmailInput
+
+	if err := c.BindUri(&emailVerificationInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email parameter is required"})
+		return
+	}
+
+	if !isValidEmail(emailVerificationInput.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
+		return
+	}
+
+	if models.HasValidExpirationCode(emailVerificationInput.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "There is already a valid code for this email"})
+		return
+	}
+
+	verificationCode := rand.Intn(900000) + 100000
+
+	err := emailSender.SendVerificationEmail(emailVerificationInput.Email, Subject, Message+strconv.Itoa(verificationCode))
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+		return
+	}
+
+	models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "email was sent"})
+}
+
 func validateFileUploaded(header *multipart.FileHeader) bool {
 	fileExtension := verifyFileExtension(header)
 	fileSize := verifyFileSize(header)
@@ -220,4 +261,19 @@ func isValidPassword(password string) bool {
 		}
 	}
 	return hasMinLen && hasUpper && hasSpecial && hasNumber
+}
+
+func isValidEmail(email string) bool {
+
+	emailParts := strings.Split(email, "@")
+
+	if models.UsernameAlreadyUsed(email) {
+		return false
+	}
+
+	if len(emailParts) != 2 {
+		return false
+	}
+
+	return models.EmailDomainExists(emailParts[1])
 }

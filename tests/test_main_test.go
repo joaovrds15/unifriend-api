@@ -14,6 +14,7 @@ var router *gin.Engine
 func TestMain(m *testing.M) {
 
 	router = gin.Default()
+	gin.SetMode(gin.TestMode)
 	routes.SetupRoutes(router)
 
 	code := m.Run()
