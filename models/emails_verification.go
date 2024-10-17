@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type EmailsVerification struct {
+	ID               uint      `json:"id" gorm:"primaryKey"`
+	Email            string    `gorm:"size:100;not null"`
+	VerificationCode int       `gorm:"not null"`
+	Expiration       time.Time `gorm:"not null"`
+}
+
 var emailVerificationCodeLifespan int
 
 func init() {
@@ -16,13 +23,6 @@ func init() {
 	}
 
 	emailVerificationCodeLifespan = lifespan
-}
-
-type EmailsVerification struct {
-	ID               uint      `json:"id" gorm:"primaryKey"`
-	Email            string    `gorm:"size:100;not null"`
-	VerificationCode int       `gorm:"not null"`
-	Expiration       time.Time `gorm:"not null"`
 }
 
 func SaveVerificationCode(email string, code int) error {
@@ -44,7 +44,7 @@ func SaveVerificationCode(email string, code int) error {
 func HasValidExpirationCode(email string) bool {
 	var count int64
 
-	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
+	fiveMinutesAgo := time.Now().Add(time.Duration(-emailVerificationCodeLifespan) * time.Minute)
 
 	if err := DB.Where("email = ?", email).Where("expiration > ?", fiveMinutesAgo).Count(&count).Error; err != nil {
 		return false

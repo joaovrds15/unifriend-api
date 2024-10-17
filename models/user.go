@@ -16,7 +16,7 @@ type User struct {
 	Name              string `gorm:"size:100;not null"`
 	ProfilePictureURL string `gorm:"size:255"`
 	IsAdmin           bool   `gorm:"default:false"`
-	PhoneNumber       string `gorm:"size:20S;not null"`
+	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
 	Major             Major
 }

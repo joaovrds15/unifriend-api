@@ -25,7 +25,7 @@ func TestUploadImageWithoutImage(t *testing.T) {
 
 	mockUploader := &mocks.MockS3Uploader{
 		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
-			return "https:s3.com.br", nil
+			return "Missing required key 'Body' in params", errors.New("Missing required key 'Body' in params")
 		},
 	}
 
@@ -563,8 +563,8 @@ func TestVerifyEmailWithValidCode(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "There is already a valid code for this email")
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Contains(t, rec.Body.String(), "email was sent")
 }
 
 func TestVerifyEmailSuccess(t *testing.T) {
