@@ -25,6 +25,11 @@ type ImageUploadInput struct {
 	UserId string                `form:"user_id" binding:"required"`
 }
 
+type EmailCodeVerificationInput struct {
+	Email string `json:"email" binding:"required"`
+	Code  int    `json:"verification_code" binding:"required"`
+}
+
 type RegisterInput struct {
 	Password          string `json:"password" binding:"required"`
 	RePassword        string `json:"re_password" binding:"required"`
@@ -218,6 +223,18 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 	models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "email was sent"})
+}
+
+func VerifyEmailCode(c *gin.Context) {
+	var codeValidation EmailCodeVerificationInput
+	if err := c.ShouldBind(&codeValidation); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email or code is necessary"})
+		return
+	}
+
+	result, _ := models.GetLastetVerificationCodeEmail(codeValidation.Email)
+
+	c.JSON(http.StatusBadRequest, gin.H{"code": result})
 }
 
 func validateFileUploaded(header *multipart.FileHeader) bool {

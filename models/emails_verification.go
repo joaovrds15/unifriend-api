@@ -10,6 +10,7 @@ type EmailsVerification struct {
 	ID               uint      `json:"id" gorm:"primaryKey"`
 	Email            string    `gorm:"size:100;not null"`
 	VerificationCode int       `gorm:"not null"`
+	CreatedAt        time.Time `gorm:"autoCreateTime"`
 	Expiration       time.Time `gorm:"not null"`
 }
 
@@ -39,6 +40,14 @@ func SaveVerificationCode(email string, code int) error {
 	}
 
 	return nil
+}
+
+func GetLastetVerificationCodeEmail(email string) (int, error) {
+	var verificationCode EmailsVerification
+
+	DB.Where("email = ?", email).Find(&verificationCode).Order("created_at")
+
+	return verificationCode.VerificationCode, nil
 }
 
 func HasValidExpirationCode(email string) bool {
