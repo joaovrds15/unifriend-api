@@ -34,10 +34,9 @@ func SetupRoutes(r *gin.Engine) {
 		public.GET("/verify/email/:email", func(c *gin.Context) {
 			controllers.VerifyEmail(c, sesClient)
 		})
-
-		public.POST("/verify/email", controllers.VerifyEmailCode)
 	}
 
+	public.POST("/verify/email", controllers.VerifyEmailCode)
 	public.POST("/register", controllers.Register)
 	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -21,6 +22,8 @@ import (
 
 func TestUploadImageWithoutImage(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
+
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
 	mockUploader := &mocks.MockS3Uploader{
@@ -66,6 +69,8 @@ func TestUploadImageWithoutImage(t *testing.T) {
 
 func TestUploadImageInvalidExtension(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
+
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
 	mockUploader := &mocks.MockS3Uploader{
@@ -122,6 +127,7 @@ func TestUploadImageInvalidExtension(t *testing.T) {
 
 func TestUploadImageSuccess(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
@@ -179,6 +185,7 @@ func TestUploadImageSuccess(t *testing.T) {
 
 func TestUploadImageBiggerThenLimit(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
@@ -418,6 +425,7 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	mockEmailSender := &mocks.MockSesSender{
 		SendVerificationEmailFunc: func(recipient, subject, body string) error {
@@ -444,6 +452,7 @@ func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
 
 func TestVerifyWithInvalidEmail(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	mockEmailSender := &mocks.MockSesSender{
 		SendVerificationEmailFunc: func(recipient, subject, body string) error {
@@ -469,6 +478,7 @@ func TestVerifyWithInvalidEmail(t *testing.T) {
 
 func TestVerifyWithInvalidEmailDomain(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	emailDomain := factory.EmailDomainsFactory()
 	invalidEmail := "email@invalid.com"
@@ -498,6 +508,7 @@ func TestVerifyWithInvalidEmailDomain(t *testing.T) {
 
 func TestVerifyEmailAwsError(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	emailDomain := factory.EmailDomainsFactory()
 	validEmail := "email@" + emailDomain.Domain
@@ -528,6 +539,7 @@ func TestVerifyEmailAwsError(t *testing.T) {
 
 func TestVerifyEmailWithValidCode(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	emailDomain := factory.EmailDomainsFactory()
 	validEmail := "email@" + emailDomain.Domain
@@ -563,12 +575,13 @@ func TestVerifyEmailWithValidCode(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Contains(t, rec.Body.String(), "email was sent")
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "There is already a valid code for this email")
 }
 
 func TestVerifyEmailSuccess(t *testing.T) {
 	SetupTestDB()
+	defer models.TearDownTestDB()
 
 	emailDomain := factory.EmailDomainsFactory()
 	validEmail := "email@" + emailDomain.Domain
@@ -601,4 +614,104 @@ func TestVerifyEmailSuccess(t *testing.T) {
 	assert.NotNil(t, emailVerification)
 	assert.Equal(t, time.Now().Add(5*time.Minute).UTC().Truncate(time.Second), emailVerification.Expiration)
 	assert.Contains(t, rec.Body.String(), "email was sent")
+}
+
+func TestVerifyEmailWithoutEmail(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	req, _ := http.NewRequest("POST", "/api/verify/email", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "email or code is necessary")
+}
+
+func TestVerifyEmailCodeDIfferentThanCreated(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	emailVerification := factory.EmailsVerificationFactory()
+
+	models.DB.Create(&emailVerification)
+
+	userData := map[string]interface{}{
+		"email":             emailVerification.Email,
+		"verification_code": -1,
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/verify/email", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "code expired or is incorrect")
+}
+
+func TestVerifyEmailExpiredCode(t *testing.T) {
+	SetupTestDB()
+
+	defer models.TearDownTestDB()
+
+	os.Setenv("VERIFICATION_CODE_LIFESPAN_MINUTES", "1")
+
+	emailVerification := factory.EmailsVerificationFactory()
+	emailVerification.Expiration = time.Now().Add(-1 * time.Minute).UTC().Truncate(time.Second)
+	models.DB.Create(&emailVerification)
+
+	userData := map[string]interface{}{
+		"email":             emailVerification.Email,
+		"verification_code": emailVerification.VerificationCode,
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/verify/email", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "code expired or is incorrect")
+}
+
+func TestVerifyEmailCodeSuccess(t *testing.T) {
+	SetupTestDB()
+
+	defer models.TearDownTestDB()
+
+	os.Setenv("VERIFICATION_CODE_LIFESPAN_MINUTES", "1")
+
+	emailVerification := factory.EmailsVerificationFactory()
+	emailVerification.Expiration = time.Now().Add(1 * time.Minute).UTC().Truncate(time.Second)
+	models.DB.Create(&emailVerification)
+
+	userData := map[string]interface{}{
+		"email":             emailVerification.Email,
+		"verification_code": emailVerification.VerificationCode,
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/verify/email", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
+	assert.Contains(t, rec.Header().Get("Set-Cookie"), "registration_token")
 }
