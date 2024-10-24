@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unifriend-api/models"
 	"unifriend-api/services"
 	"unifriend-api/utils/aws"
+	"unifriend-api/utils/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -23,6 +25,11 @@ const Message = "Seu código de verificação é: "
 type ImageUploadInput struct {
 	File   *multipart.FileHeader `form:"file" binding:"required"`
 	UserId string                `form:"user_id" binding:"required"`
+}
+
+type EmailCodeVerificationInput struct {
+	Email            string `json:"email" binding:"required"`
+	VerificationCode int    `json:"verification_code" binding:"required"`
 }
 
 type RegisterInput struct {
@@ -206,6 +213,7 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		return
 	}
 
+	rand.Seed(uint64(time.Now().UnixNano()))
 	verificationCode := rand.Intn(900000) + 100000
 
 	err := emailSender.SendVerificationEmail(emailVerificationInput.Email, Subject, Message+strconv.Itoa(verificationCode))
@@ -218,6 +226,44 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 	models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "email was sent"})
+}
+
+func VerifyEmailCode(c *gin.Context) {
+	var codeValidation EmailCodeVerificationInput
+
+	if err := c.ShouldBind(&codeValidation); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email or code is necessary"})
+		return
+	}
+
+	verificationCode, errCode := models.GetLastetVerificationCodeEmail(codeValidation.Email)
+
+	if errCode != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "verification code not found"})
+		return
+	}
+
+	if !verificationCode.Expiration.After(time.Now().UTC()) || verificationCode.VerificationCode != codeValidation.VerificationCode {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "code expired or is incorrect"})
+		return
+	}
+
+	registration := token.RegistrationToken{Email: codeValidation.Email}
+	token, _ := registration.GenerateToken()
+
+	registrationTokenLifespan, _ := strconv.Atoi(os.Getenv("TOKEN_REGISTRATION_HOUR_LIFESPAN"))
+
+	c.SetCookie(
+		"registration_token",
+		token,
+		registrationTokenLifespan*3600,
+		"/",
+		os.Getenv("CLIENT_DOMAIN"),
+		os.Getenv("GIN_MODE") == "release",
+		true,
+	)
+
+	c.Status(http.StatusCreated)
 }
 
 func validateFileUploaded(header *multipart.FileHeader) bool {

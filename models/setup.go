@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -50,6 +52,15 @@ func ConnectDataBase() {
 		log.Fatalf("Error loading .env file")
 	}
 
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags), // Output to stdout
+		logger.Config{
+			SlowThreshold: time.Second, // Slow SQL threshold
+			LogLevel:      logger.Info, // Log all queries
+			Colorful:      true,        // Enable colorful printing
+		},
+	)
+
 	Dbdriver := os.Getenv("DB_DRIVER")
 	DbHost := os.Getenv("DB_HOST")
 	DbUser := os.Getenv("DB_USER")
@@ -59,7 +70,9 @@ func ConnectDataBase() {
 
 	DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
 
-	DB, err = gorm.Open(mysql.Open(DBURL), &gorm.Config{})
+	DB, err = gorm.Open(mysql.Open(DBURL), &gorm.Config{
+		Logger: newLogger,
+	})
 
 	if err != nil {
 		fmt.Println("Cannot connect to database ", Dbdriver)
