@@ -1,10 +1,12 @@
 package factory
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
 	"unifriend-api/models"
+	"unifriend-api/utils/token"
 
 	"github.com/go-faker/faker/v4"
 	"golang.org/x/exp/rand"
@@ -34,4 +36,22 @@ func EmailsVerificationFactory() models.EmailsVerification {
 	}
 
 	return emailVerification
+}
+
+func GetEmailToken(email string) string {
+	os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
+	os.Setenv("API_SECRET", "secret")
+	os.Setenv("TOKEN_REGISTRATION_HOUR_LIFESPAN", "1")
+
+	registrationToken := token.RegistrationToken{
+		Email: email,
+	}
+
+	token, error := registrationToken.GenerateToken()
+	fmt.Println(token)
+	if error == nil {
+		return token
+	}
+
+	return ""
 }

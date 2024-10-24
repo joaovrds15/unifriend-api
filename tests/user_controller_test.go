@@ -310,17 +310,28 @@ func TestRegister(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	payload := []byte(`{
-		"password": "Senha@123", 
-		"re_password" : "Senha@123",
-		"major_id": 1,
-		"email": "testemail@mail.com",
-		"name": "test user",
+	userData := map[string]interface{}{
+		"password":            "Senha@123",
+		"re_password":         "Senha@123",
+		"major_id":            1,
+		"email":               "testemail@mail.com",
+		"name":                "test user",
 		"profile_picture_url": "http://test.com",
-		"phone_number": "62999999999"
-	}`)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+		"phone_number":        "62999999999",
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
+
+	registrationCookie := &http.Cookie{
+		Name:  "registration_token",
+		Value: factory.GetEmailToken(userData["email"].(string)),
+		Path:  "/",
+	}
+
+	req.AddCookie(registrationCookie)
 
 	rec := httptest.NewRecorder()
 
@@ -355,6 +366,7 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 
+	router := SetupRouterWithoutMiddleware()
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -386,6 +398,7 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 
+	router := SetupRouterWithoutMiddleware()
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -394,6 +407,7 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 
 func TestRegisterInvalidPassword(t *testing.T) {
 	SetupTestDB()
+
 	defer models.TearDownTestDB()
 
 	major := models.Major{
@@ -417,6 +431,7 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 
+	router := SetupRouterWithoutMiddleware()
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -633,6 +648,7 @@ func TestVerifyEmailWithoutEmail(t *testing.T) {
 
 func TestVerifyEmailCodeDIfferentThanCreated(t *testing.T) {
 	SetupTestDB()
+
 	defer models.TearDownTestDB()
 
 	emailVerification := factory.EmailsVerificationFactory()

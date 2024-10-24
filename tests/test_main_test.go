@@ -3,6 +3,7 @@ package tests
 import (
 	"os"
 	"testing"
+	"unifriend-api/controllers"
 	"unifriend-api/models"
 	"unifriend-api/routes"
 
@@ -24,4 +25,11 @@ func TestMain(m *testing.M) {
 
 func SetupTestDB() {
 	models.SetupTestDB()
+}
+
+func SetupRouterWithoutMiddleware() *gin.Engine {
+	r := gin.Default()
+
+	r.POST("/api/register", controllers.Register)
+	return r
 }

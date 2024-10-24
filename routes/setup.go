@@ -14,8 +14,10 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	public := r.Group("/api")
 	private := r.Group("/api")
-	private.Use(middleware.AuthMiddleware())
+	register := r.Group("/api")
 
+	private.Use(middleware.AuthMiddleware())
+	register.Use(middleware.AuthRegistrationMiddleware())
 	if gin.Mode() != gin.TestMode {
 		s3Client, err := services.NewS3Client()
 		if err != nil {
@@ -37,7 +39,7 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	public.POST("/verify/email", controllers.VerifyEmailCode)
-	public.POST("/register", controllers.Register)
+	register.POST("/register", controllers.Register)
 	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)
 	public.POST("/login", controllers.Login)
