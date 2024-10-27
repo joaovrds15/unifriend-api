@@ -318,6 +318,7 @@ func TestRegister(t *testing.T) {
 		"name":                "test user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
+		"images":              []models.UsersImages{factory.UsersImagesFactory()},
 	}
 
 	jsonValue, _ := json.Marshal(userData)
@@ -337,6 +338,15 @@ func TestRegister(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
+	var user models.User
+	models.DB.Where("email = ?", userData["email"]).First(&user)
+	assert.NotNil(t, user)
+
+	var userImage models.UsersImages
+	models.DB.Where("user_id = ?", user.ID).First(&userImage)
+	assert.NotNil(t, userImage)
+	assert.Equal(t, user.ID, userImage.UserID)
+
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
@@ -352,16 +362,20 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	models.DB.Create(&major)
 	models.DB.Create(&user)
 
-	payload := []byte(`{
-		"password": "Senha@123", 
-		"re_password" : "Senha@123",
-		"major_id": 1,
-		"email": "testuser@mail.com",
-		"name": "test user",
+	userData := map[string]interface{}{
+		"password":            "Senha@123",
+		"re_password":         "Senha@123",
+		"major_id":            1,
+		"email":               "testuser@mail.com",
+		"name":                "test user",
 		"profile_picture_url": "http://test.com",
-		"phone_number": "62999999999"
-	}`)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+		"phone_number":        "62999999999",
+		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
@@ -384,16 +398,20 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 	models.DB.Create(&major)
 	models.DB.Create(&user)
 
-	payload := []byte(`{
-		"password": "Senha@123", 
-		"re_password" : "Senha@123",
-		"major_id": 1,
-		"email": "newuser@mail.com",
-		"name": "new user",
+	userData := map[string]interface{}{
+		"password":            "Senha@123",
+		"re_password":         "Senha@123",
+		"major_id":            1,
+		"email":               "newuser@mail.com",
+		"name":                "new user",
 		"profile_picture_url": "http://test.com",
-		"phone_number": "62999999999"
-	}`)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+		"phone_number":        "62999999999",
+		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+	}
+
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
@@ -416,17 +434,20 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	payload := []byte(`{
-		"password": "Senha123", 
-		"re_password" : "Senha123",
-		"major_id": 1,
-		"email": "testemail@mail.com",
-		"name": "test user",
+	userData := map[string]interface{}{
+		"password":            "Senha123",
+		"re_password":         "Senha123",
+		"major_id":            1,
+		"email":               "testemail@mail.com",
+		"name":                "test user",
 		"profile_picture_url": "http://test.com",
-		"phone_number": "62999999999"
-	}`)
+		"phone_number":        "62999999999",
+		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+	}
 
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(payload))
+	jsonValue, _ := json.Marshal(userData)
+
+	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()

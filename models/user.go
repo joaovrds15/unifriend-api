@@ -19,6 +19,7 @@ type User struct {
 	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
 	Major             Major
+	Images            []UsersImages `gorm:"foreignKey:UserID"`
 }
 
 func GetUserByID(uid uint) (User, error) {

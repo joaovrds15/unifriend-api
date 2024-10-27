@@ -33,13 +33,14 @@ type EmailCodeVerificationInput struct {
 }
 
 type RegisterInput struct {
-	Password          string `json:"password" binding:"required"`
-	RePassword        string `json:"re_password" binding:"required"`
-	Email             string `json:"email" binding:"required"`
-	Name              string `json:"name" binding:"required"`
-	PhoneNumber       string `json:"phone_number" binding:"required"`
-	ProfilePictureURL string `json:"profile_picture_url"`
-	MajorID           uint   `json:"major_id" binding:"required"`
+	Password          string               `json:"password" binding:"required"`
+	RePassword        string               `json:"re_password" binding:"required"`
+	Email             string               `json:"email" binding:"required"`
+	Name              string               `json:"name" binding:"required"`
+	PhoneNumber       string               `json:"phone_number" binding:"required"`
+	ProfilePictureURL string               `json:"profile_picture_url"`
+	MajorID           uint                 `json:"major_id" binding:"required"`
+	Images            []models.UsersImages `json:"images" binding:"required"`
 }
 
 type LoginInput struct {
@@ -99,6 +100,7 @@ func Register(c *gin.Context) {
 	u.ProfilePictureURL = input.ProfilePictureURL
 	u.MajorID = input.MajorID
 	u.PhoneNumber = input.PhoneNumber
+	u.Images = input.Images
 
 	_, err := u.SaveUser()
 
