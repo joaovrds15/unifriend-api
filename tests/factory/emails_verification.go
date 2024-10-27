@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -48,7 +47,7 @@ func GetEmailToken(email string) string {
 	}
 
 	token, error := registrationToken.GenerateToken()
-	fmt.Println(token)
+
 	if error == nil {
 		return token
 	}

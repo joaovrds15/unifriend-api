@@ -33,6 +33,7 @@ func SetupTestDB() {
 		&UserResponse{},
 		&EmailDomains{},
 		&EmailsVerification{},
+		&UsersImages{},
 	)
 }
 
@@ -90,5 +91,6 @@ func ConnectDataBase() {
 		&UserResponse{},
 		&EmailDomains{},
 		&EmailsVerification{},
+		&UsersImages{},
 	)
 }
