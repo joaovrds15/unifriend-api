@@ -19,7 +19,7 @@ func UserFactory() models.User {
 		ProfilePictureURL: faker.URL(),
 		IsAdmin:           false,
 		MajorID:           MajorFactory().ID,
-		Images:            UsersImagesFactory().User.Images,
+		Images:            []models.UsersImages{UsersImagesFactory()},
 	}
 
 	return user
