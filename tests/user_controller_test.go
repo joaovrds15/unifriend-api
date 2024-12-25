@@ -64,7 +64,7 @@ func TestUploadImageWithoutImage(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "file and user_id are required")
+	assert.Contains(t, rec.Body.String(), "file is required")
 }
 
 func TestUploadImageInvalidExtension(t *testing.T) {
@@ -180,7 +180,7 @@ func TestUploadImageSuccess(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Contains(t, rec.Body.String(), "image uploaded succesufuly")
+	assert.Contains(t, rec.Body.String(), "https:s3.com.br")
 }
 
 func TestUploadImageBiggerThenLimit(t *testing.T) {
@@ -310,6 +310,11 @@ func TestRegister(t *testing.T) {
 
 	models.DB.Create(&major)
 
+	imagesUrls := []string{
+		"http://test.com",
+		"http://test2.com",
+	}
+
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
@@ -318,7 +323,7 @@ func TestRegister(t *testing.T) {
 		"name":                "test user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
