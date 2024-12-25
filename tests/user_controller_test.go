@@ -367,6 +367,11 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	models.DB.Create(&major)
 	models.DB.Create(&user)
 
+	imagesUrls := []string{
+		"http://test.com",
+		"http://test2.com",
+	}
+
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
@@ -375,7 +380,7 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 		"name":                "test user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
