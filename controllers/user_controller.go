@@ -11,7 +11,6 @@ import (
 	"unicode"
 	"unifriend-api/models"
 	"unifriend-api/services"
-	"unifriend-api/utils/aws"
 	"unifriend-api/utils/token"
 
 	"github.com/gin-gonic/gin"
@@ -23,8 +22,7 @@ const Subject = "Unifriends Email de verificação"
 const Message = "Seu código de verificação é: "
 
 type ImageUploadInput struct {
-	File   *multipart.FileHeader `form:"file" binding:"required"`
-	UserId string                `form:"user_id" binding:"required"`
+	File *multipart.FileHeader `form:"file" binding:"required"`
 }
 
 type EmailCodeVerificationInput struct {
@@ -33,14 +31,14 @@ type EmailCodeVerificationInput struct {
 }
 
 type RegisterInput struct {
-	Password          string               `json:"password" binding:"required"`
-	RePassword        string               `json:"re_password" binding:"required"`
-	Email             string               `json:"email" binding:"required"`
-	Name              string               `json:"name" binding:"required"`
-	PhoneNumber       string               `json:"phone_number" binding:"required"`
-	ProfilePictureURL string               `json:"profile_picture_url"`
-	MajorID           uint                 `json:"major_id" binding:"required"`
-	Images            []models.UsersImages `json:"images" binding:"required"`
+	Password          string   `json:"password" binding:"required"`
+	RePassword        string   `json:"re_password" binding:"required"`
+	Email             string   `json:"email" binding:"required"`
+	Name              string   `json:"name" binding:"required"`
+	PhoneNumber       string   `json:"phone_number" binding:"required"`
+	ProfilePictureURL string   `json:"profile_picture_url"`
+	MajorID           uint     `json:"major_id" binding:"required"`
+	Images            []string `json:"images" binding:"required"`
 }
 
 type LoginInput struct {
@@ -94,13 +92,19 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	imagesUrl := []models.UsersImages{}
+
+	for _, image := range input.Images {
+		imagesUrl = append(imagesUrl, models.UsersImages{ImageUrl: image})
+	}
+
 	u.Password = input.Password
 	u.Email = input.Email
 	u.Name = input.Name
 	u.ProfilePictureURL = input.ProfilePictureURL
 	u.MajorID = input.MajorID
 	u.PhoneNumber = input.PhoneNumber
-	u.Images = input.Images
+	u.Images = imagesUrl
 
 	_, err := u.SaveUser()
 
@@ -157,7 +161,7 @@ func UploadProfileImage(c *gin.Context, uploader services.S3Uploader) {
 	var imageValidator ImageUploadInput
 
 	if err := c.ShouldBind(&imageValidator); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "file and user_id are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
 		return
 	}
 
@@ -171,30 +175,12 @@ func UploadProfileImage(c *gin.Context, uploader services.S3Uploader) {
 
 	imageFile, _ := imageValidator.File.Open()
 	uploadResult, err := uploader.UploadImage(imageFile, fileName)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
 		return
 	}
 
-	userID, _ := strconv.ParseUint(imageValidator.UserId, 10, 32)
-	user, userErr := models.GetUserByID(uint(userID))
-
-	if userErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
-		return
-	}
-
-	user.ProfilePictureURL = uploadResult
-	_, saveUserErr := user.SaveUser()
-
-	if saveUserErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user info"})
-		aws.DeleteFileFromS3(fileName)
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "image uploaded succesufuly"})
+	c.JSON(http.StatusCreated, gin.H{"image-url": uploadResult})
 }
 
 func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
@@ -210,8 +196,15 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		return
 	}
 
-	if models.HasValidExpirationCode(emailVerificationInput.Email) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "There is already a valid code for this email"})
+	if models.HasValidVerificationCode(emailVerificationInput.Email) {
+		verificationCode, errCode := models.GetLastetVerificationCodeEmail(emailVerificationInput.Email)
+		if errCode != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "verification code not found"})
+			return
+		}
+
+		expirationTime := verificationCode.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
+		c.JSON(http.StatusConflict, gin.H{"error": "There is already a valid code for this email", "expiration_time": expirationTime})
 		return
 	}
 
@@ -225,9 +218,9 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		return
 	}
 
-	models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
-
-	c.JSON(http.StatusCreated, gin.H{"message": "email was sent"})
+	verification, _ := models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
+	expirationTime := verification.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
+	c.JSON(http.StatusCreated, gin.H{"message": "email was sent", "expiration_time": expirationTime})
 }
 
 func VerifyEmailCode(c *gin.Context) {
@@ -246,7 +239,7 @@ func VerifyEmailCode(c *gin.Context) {
 	}
 
 	if !verificationCode.Expiration.After(time.Now().UTC()) || verificationCode.VerificationCode != codeValidation.VerificationCode {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "code expired or is incorrect"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "code expired or is incorrect"})
 		return
 	}
 
@@ -266,6 +259,30 @@ func VerifyEmailCode(c *gin.Context) {
 	)
 
 	c.Status(http.StatusCreated)
+}
+
+func GetVerificationCodeExpiration(c *gin.Context) {
+	var emailVerificationInput VerifyEmailInput
+
+	if err := c.BindUri(&emailVerificationInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email parameter is required"})
+		return
+	}
+
+	verificationCode, errCode := models.GetLastetVerificationCodeEmail(emailVerificationInput.Email)
+
+	if errCode != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "verification code not found"})
+		return
+	}
+
+	expirationTime := verificationCode.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
+	if expirationTime > 0 {
+		c.JSON(http.StatusOK, gin.H{"expiration_time": expirationTime})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"expiration_time": 0})
 }
 
 func validateFileUploaded(header *multipart.FileHeader) bool {

@@ -26,6 +26,6 @@ func (r RegistrationToken) GenerateToken() (string, error) {
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(token_lifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(os.Getenv("API_SECRET")))
+	return token.SignedString([]byte(os.Getenv("API_SECRET_TOKEN_REGISTER")))
 
 }

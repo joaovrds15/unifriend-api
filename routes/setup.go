@@ -29,7 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 			log.Fatalf("Failed to create SES client: %v", err)
 		}
 
-		private.POST("/upload-profile-image", func(c *gin.Context) {
+		register.POST("/upload-image", func(c *gin.Context) {
 			controllers.UploadProfileImage(c, s3Client)
 		})
 
@@ -38,6 +38,7 @@ func SetupRoutes(r *gin.Engine) {
 		})
 	}
 
+	public.GET("/verify/code/:email", controllers.GetVerificationCodeExpiration)
 	public.POST("/verify/email", controllers.VerifyEmailCode)
 	register.POST("/register", controllers.Register)
 	private.POST("/answer/save", controllers.SaveAnswers)

@@ -26,8 +26,8 @@ func init() {
 	emailVerificationCodeLifespan = lifespan
 }
 
-func SaveVerificationCode(email string, code int) error {
-	ev := EmailsVerification{
+func SaveVerificationCode(email string, code int) (*EmailsVerification, error) {
+	ev := &EmailsVerification{
 		Email:            email,
 		VerificationCode: code,
 		Expiration:       time.Now().Add(time.Duration(emailVerificationCodeLifespan) * time.Minute).UTC().Truncate(time.Second),
@@ -36,10 +36,10 @@ func SaveVerificationCode(email string, code int) error {
 	err := DB.Save(&ev).Error
 
 	if err != nil {
-		return err
+		return &EmailsVerification{}, err
 	}
 
-	return nil
+	return ev, nil
 }
 
 func GetLastetVerificationCodeEmail(email string) (*EmailsVerification, error) {
@@ -50,12 +50,10 @@ func GetLastetVerificationCodeEmail(email string) (*EmailsVerification, error) {
 	return &verificationCode, nil
 }
 
-func HasValidExpirationCode(email string) bool {
+func HasValidVerificationCode(email string) bool {
 	var count int64
 
-	fiveMinutesAgo := time.Now().Add(time.Duration(-emailVerificationCodeLifespan) * time.Minute)
-
-	if err := DB.Where("email = ?", email).Where("expiration > ?", fiveMinutesAgo).Find(&EmailsVerification{}).Count(&count).Error; err != nil {
+	if err := DB.Where("email = ?", email).Where("expiration >= ?", time.Now()).Find(&EmailsVerification{}).Count(&count).Error; err != nil {
 		return false
 	}
 
@@ -63,5 +61,5 @@ func HasValidExpirationCode(email string) bool {
 }
 
 func CanSendVerificationCode(email string) bool {
-	return !HasValidExpirationCode(email)
+	return !HasValidVerificationCode(email)
 }

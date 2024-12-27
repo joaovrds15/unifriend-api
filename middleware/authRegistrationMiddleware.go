@@ -18,7 +18,7 @@ func AuthRegistrationMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("API_SECRET")), nil
+			return []byte(os.Getenv("API_SECRET_TOKEN_REGISTER")), nil
 		})
 
 		if err != nil {
