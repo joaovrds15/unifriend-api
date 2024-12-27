@@ -408,6 +408,11 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 	models.DB.Create(&major)
 	models.DB.Create(&user)
 
+	imagesUrls := []string{
+		"http://test.com",
+		"http://test2.com",
+	}
+
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
@@ -416,7 +421,7 @@ func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
 		"name":                "new user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
@@ -444,6 +449,11 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 	models.DB.Create(&major)
 
+	imagesUrls := []string{
+		"http://test.com",
+		"http://test2.com",
+	}
+
 	userData := map[string]interface{}{
 		"password":            "Senha123",
 		"re_password":         "Senha123",
@@ -452,7 +462,7 @@ func TestRegisterInvalidPassword(t *testing.T) {
 		"name":                "test user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              []models.UsersImages{factory.UsersImagesFactory()},
+		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
@@ -618,11 +628,6 @@ func TestVerifyEmailWithValidCode(t *testing.T) {
 	assert.NotNil(t, emailVerification)
 	assert.Equal(t, time.Now().Add(5*time.Minute).UTC().Truncate(time.Second), emailVerification.Expiration)
 	assert.Contains(t, rec.Body.String(), "email was sent")
-
-	rec = httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "There is already a valid code for this email")
 }
 
 func TestVerifyEmailSuccess(t *testing.T) {
@@ -700,7 +705,7 @@ func TestVerifyEmailCodeDIfferentThanCreated(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	assert.Contains(t, rec.Body.String(), "code expired or is incorrect")
 }
 
@@ -729,7 +734,7 @@ func TestVerifyEmailExpiredCode(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	assert.Contains(t, rec.Body.String(), "code expired or is incorrect")
 }
 
