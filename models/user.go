@@ -16,6 +16,7 @@ type User struct {
 	Name              string `gorm:"size:100;not null"`
 	ProfilePictureURL string `gorm:"size:255"`
 	IsAdmin           bool   `gorm:"default:false"`
+	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
 	Major             Major
 }
@@ -31,7 +32,6 @@ func GetUserByID(uid uint) (User, error) {
 	u.PrepareGive()
 
 	return u, nil
-
 }
 
 func UsernameAlreadyUsed(email string) bool {
@@ -40,12 +40,18 @@ func UsernameAlreadyUsed(email string) bool {
 	return count > 0
 }
 
+func PhoneNumberAlreadyUsed(phoneNumber string) bool {
+	var count int64
+	DB.Model(&User{}).Where("phone_number = ?", phoneNumber).Count(&count)
+	return count > 0
+}
+
 func (u *User) PrepareGive() {
 	u.Password = ""
 }
 
 func (u *User) SaveUser() (*User, error) {
-	err := DB.Create(&u).Error
+	err := DB.Save(&u).Error
 	if err != nil {
 		return &User{}, err
 	}

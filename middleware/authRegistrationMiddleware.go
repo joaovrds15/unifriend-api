@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthRegistrationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString, tokenErr := c.Cookie("auth_token")
+		tokenString, tokenErr := c.Cookie("registration_token")
 		if tokenString == "" || tokenErr != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Token"})
 			c.Abort()
@@ -28,7 +28,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			c.Set("user", claims["user"])
+			c.Set("email", claims["email"])
 			c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

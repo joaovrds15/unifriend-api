@@ -1,10 +1,9 @@
 package main
 
 import (
+	"os"
 	"unifriend-api/models"
 	"unifriend-api/routes"
-
-	_ "unifriend-api/docs"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -33,7 +32,15 @@ func main() {
 	r := gin.Default()
 
 	models.ConnectDataBase()
-	r.Use(cors.Default())
+
+	corsConfig := cors.Config{
+		AllowOrigins:     []string{os.Getenv("CLIENT_DOMAIN")},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Content-Type"},
+		AllowCredentials: true,
+	}
+
+	r.Use(cors.New(corsConfig))
 	routes.SetupRoutes(r)
 
 	r.Run(":8090")
