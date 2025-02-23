@@ -42,7 +42,7 @@ func SetupRoutes(r *gin.Engine) {
 	register.POST("/register", controllers.Register)
 	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)
-	private.GET("/get-results", controllers.GetResults)
+	private.GET("/get-results/user/:user_id", controllers.GetResults)
 	public.POST("/login", controllers.Login)
 	public.GET("/health", Ping)
 	public.GET("/majors", controllers.GetMajors)

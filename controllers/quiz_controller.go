@@ -3,8 +3,9 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"unifriend-api/models"
 
 	"github.com/gin-gonic/gin"
@@ -144,7 +145,18 @@ func SaveAnswers(c *gin.Context) {
 }
 
 func GetResults(c *gin.Context) {
-	resp, err := http.Get("http://127.0.0.1:8020/calculate-result?user_id=1")
+	userId := c.Param("user_id")
+	req, err := http.NewRequest("GET", os.Getenv("RANKING-SCORE-URL")+userId, nil)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+		return
+	}
+
+	req.Header.Set("Authorization ", os.Getenv("RANKING-SCORE-TOKEN"))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -153,7 +165,7 @@ func GetResults(c *gin.Context) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error")
 		return
