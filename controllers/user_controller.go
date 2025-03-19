@@ -191,8 +191,13 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		return
 	}
 
+	if models.UsernameAlreadyUsed(emailVerificationInput.Email) {
+		c.JSON(http.StatusConflict, gin.H{"error": "Email já está em uso"})
+		return
+	}
+
 	if !isValidEmail(emailVerificationInput.Email) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email inválido"})
 		return
 	}
 
@@ -204,7 +209,7 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		}
 
 		expirationTime := verificationCode.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
-		c.JSON(http.StatusConflict, gin.H{"error": "There is already a valid code for this email", "expiration_time": expirationTime})
+		c.JSON(http.StatusOK, gin.H{"error": "There is already a valid code for this email", "expiration_time": expirationTime})
 		return
 	}
 
@@ -331,10 +336,6 @@ func isValidPassword(password string) bool {
 func isValidEmail(email string) bool {
 
 	emailParts := strings.Split(email, "@")
-
-	if models.UsernameAlreadyUsed(email) {
-		return false
-	}
 
 	if len(emailParts) != 2 {
 		return false

@@ -529,7 +529,38 @@ func TestVerifyWithInvalidEmail(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "invalid email")
+	assert.Contains(t, rec.Body.String(), "Email inválido")
+}
+
+func TestVerifyEmailAlreadyInUse(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	user.Email = "testuser@mail.com"
+
+	models.DB.Create(&user)
+
+	mockEmailSender := &mocks.MockSesSender{
+		SendVerificationEmailFunc: func(recipient, subject, body string) error {
+			return nil
+		},
+	}
+
+	router := gin.Default()
+
+	router.GET("/api/verify/email/:email", func(c *gin.Context) {
+		controllers.VerifyEmail(c, mockEmailSender)
+	})
+
+	gin.SetMode(gin.TestMode)
+	req, _ := http.NewRequest("GET", "/api/verify/email/"+user.Email, nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Email já está em uso")
 }
 
 func TestVerifyWithInvalidEmailDomain(t *testing.T) {
@@ -559,7 +590,7 @@ func TestVerifyWithInvalidEmailDomain(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "invalid email")
+	assert.Contains(t, rec.Body.String(), "Email inválido")
 }
 
 func TestVerifyEmailAwsError(t *testing.T) {
