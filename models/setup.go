@@ -82,15 +82,15 @@ func ConnectDataBase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	// DB.AutoMigrate(
-	// 	&User{},
-	// 	&Major{},
-	// 	&OptionTable{},
-	// 	&QuestionTable{},
-	// 	&QuizTable{},
-	// 	&UserResponse{},
-	// 	&EmailDomains{},
-	// 	&EmailsVerification{},
-	// 	&UsersImages{},
-	// )
+	DB.AutoMigrate(
+		&User{},
+		&Major{},
+		&OptionTable{},
+		&QuestionTable{},
+		&QuizTable{},
+		&UserResponse{},
+		&EmailDomains{},
+		&EmailsVerification{},
+		&UsersImages{},
+	)
 }
