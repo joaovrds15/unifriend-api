@@ -1,8 +1,8 @@
 module unifriend-api
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.22.1
+toolchain go1.22.0
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
