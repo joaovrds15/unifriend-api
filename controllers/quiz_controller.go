@@ -1,11 +1,7 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"unifriend-api/models"
 
 	"github.com/gin-gonic/gin"
@@ -142,40 +138,4 @@ func SaveAnswers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, SaveAnswerResponse{})
-}
-
-func GetResults(c *gin.Context) {
-	userId := c.Param("user_id")
-	req, err := http.NewRequest("GET", os.Getenv("RANKING-SCORE-URL")+userId, nil)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-		return
-	}
-
-	req.Header.Set("Authorization ", os.Getenv("RANKING-SCORE-TOKEN"))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error")
-		return
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response body"})
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
 }

@@ -30,6 +30,17 @@ type EmailCodeVerificationInput struct {
 	VerificationCode int    `json:"verification_code" binding:"required"`
 }
 
+type User struct {
+	UserId            uint   `json:"user_id"`
+	ProfilePictureURL string `json:"profile_picture_url"`
+	Name              string `json:"name"`
+	Score             int    `json:"score"`
+}
+
+type UserResponse struct {
+	Data []User `json:"data"`
+}
+
 type RegisterInput struct {
 	Password          string   `json:"password" binding:"required"`
 	RePassword        string   `json:"re_password" binding:"required"`
@@ -44,6 +55,10 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type GetResultsInput struct {
+	UserId uint `uri:"user_id" binding:"required"`
 }
 
 type VerifyEmailInput struct {
@@ -288,6 +303,50 @@ func GetVerificationCodeExpiration(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"expiration_time": 0})
+}
+
+func GetResults(c *gin.Context) {
+	var userGetResultsInput GetResultsInput
+	var usersResponses []models.UserResponse
+	var scoreResult map[int]User
+
+	if err := c.BindUri(&userGetResultsInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "parametro invalido"})
+		return
+	}
+
+	userResults, err := models.GetUserResponsesByUserID(userGetResultsInput.UserId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "algo deu errado, tenta novamente"})
+	}
+
+	for _, response := range userResults {
+		resultsResponse, err := response.GetUsersWithSameResponses()
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "algo deu errado, tenta novamente"})
+		}
+
+		usersResponses = append(usersResponses, resultsResponse...)
+	}
+
+	for _, response := range userResults {
+		if _, exists := scoreResult[int(response.UserID)]; !exists {
+			scoreResult[int(response.UserID)] = User{
+				UserId:            response.UserID,
+				Name:              response.User.Name,
+				ProfilePictureURL: response.User.ProfilePictureURL,
+				Score:             0,
+			}
+		}
+
+		user := scoreResult[int(response.UserID)]
+		user.Score++
+		scoreResult[int(response.UserID)] = user
+	}
+
+	c.JSON(http.StatusOK, scoreResult)
 }
 
 func validateFileUploaded(header *multipart.FileHeader) bool {

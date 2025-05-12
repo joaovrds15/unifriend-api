@@ -13,3 +13,26 @@ type UserResponse struct {
 func (u *UserResponse) SaveUserResponse() {
 	DB.Save(&u)
 }
+
+func GetUserResponsesByUserID(userId uint) ([]UserResponse, error) {
+	var userResponses []UserResponse
+
+	if err := DB.Where("user_id = ?", userId).Find(&userResponses).Error; err != nil {
+		return userResponses, err
+	}
+
+	return userResponses, nil
+}
+
+func (response *UserResponse) GetUsersWithSameResponses() ([]UserResponse, error) {
+	var usersResponses []UserResponse
+
+	if err := DB.Where(
+		"user_id != ? AND question_id = ? AND option_id = ?",
+		response.UserID, response.QuestionID, response.OptionID,
+	).Find(&usersResponses).Error; err != nil {
+		return usersResponses, err
+	}
+
+	return usersResponses, nil
+}
