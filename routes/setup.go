@@ -30,7 +30,24 @@ func SetupRoutes(r *gin.Engine) {
 		}
 
 		register.POST("/upload-image", func(c *gin.Context) {
-			controllers.UploadProfileImage(c, s3Client)
+			url, err := controllers.UploadImage(c, s3Client)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusCreated, gin.H{"image-url": url})
+		})
+
+		private.PUT("/users/me/profile-picture", func(c *gin.Context) {
+			controllers.UpdateUserProfilePicture(c, s3Client)
+		})
+
+		private.POST("/users/me/images", func(c *gin.Context) {
+			controllers.AddUserImage(c, s3Client)
+		})
+
+		private.DELETE("/users/me/images/:image_id", func(c *gin.Context) {
+			controllers.DeleteUserImage(c)
 		})
 
 		public.GET("/verify/email/:email", func(c *gin.Context) {
