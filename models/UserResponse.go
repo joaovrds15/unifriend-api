@@ -1,5 +1,7 @@
 package models
 
+import "strings"
+
 type UserResponse struct {
 	ID         uint `json:"id" gorm:"primaryKey"`
 	QuestionID uint
@@ -22,6 +24,36 @@ func GetUserResponsesByUserID(userId uint) ([]UserResponse, error) {
 	}
 
 	return userResponses, nil
+}
+
+func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers []UserResponse) ([]UserResponse, error) {
+	var matchingResponses []UserResponse
+
+	if len(currentUserAnswers) == 0 {
+		return matchingResponses, nil
+	}
+
+	var queryConditions strings.Builder
+	var queryArgs []interface{}
+
+	for i, answer := range currentUserAnswers {
+		if i > 0 {
+			queryConditions.WriteString(" OR ")
+		}
+		queryConditions.WriteString("(question_id = ? AND option_id = ?)")
+		queryArgs = append(queryArgs, answer.QuestionID, answer.OptionID)
+	}
+
+	err := DB.Preload("User").
+		Where("user_id != ?", currentUserID).
+		Where(queryConditions.String(), queryArgs...).
+		Find(&matchingResponses).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return matchingResponses, nil
 }
 
 func (response *UserResponse) GetUsersWithSameResponses() ([]UserResponse, error) {

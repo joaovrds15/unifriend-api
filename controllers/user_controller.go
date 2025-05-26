@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -307,46 +309,84 @@ func GetVerificationCodeExpiration(c *gin.Context) {
 
 func GetResults(c *gin.Context) {
 	var userGetResultsInput GetResultsInput
-	var usersResponses []models.UserResponse
-	var scoreResult map[int]User
-
 	if err := c.BindUri(&userGetResultsInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "parametro invalido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id parameter"})
 		return
 	}
 
-	userResults, err := models.GetUserResponsesByUserID(userGetResultsInput.UserId)
+	if err := validateUserAccess(c, userGetResultsInput.UserId); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this resource"})
+		return
+	}
 
+	currentUserResponses, err := models.GetUserResponsesByUserID(userGetResultsInput.UserId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "algo deu errado, tenta novamente"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve your responses. Please try again."})
+		return
 	}
 
-	for _, response := range userResults {
-		resultsResponse, err := response.GetUsersWithSameResponses()
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "algo deu errado, tenta novamente"})
-		}
-
-		usersResponses = append(usersResponses, resultsResponse...)
+	if len(currentUserResponses) == 0 {
+		c.JSON(200, gin.H{
+			"error": false,
+			"data":  make([]User, 0),
+		})
+		return
 	}
 
-	for _, response := range userResults {
-		if _, exists := scoreResult[int(response.UserID)]; !exists {
-			scoreResult[int(response.UserID)] = User{
-				UserId:            response.UserID,
-				Name:              response.User.Name,
-				ProfilePictureURL: response.User.ProfilePictureURL,
-				Score:             0,
+	allMatchingResponsesFromOthers, err := models.GetMatchingResponsesFromOtherUsers(userGetResultsInput.UserId, currentUserResponses)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compare responses. Please try again."})
+		return
+	}
+
+	users := buildUserScores(allMatchingResponsesFromOthers)
+
+	c.JSON(200, gin.H{
+		"error": false,
+		"data":  users,
+	})
+}
+
+func validateUserAccess(c *gin.Context, requestedUserID uint) error {
+	tokenUserIDClaim, _ := c.Get("user_id")
+	tokenUserIDFloat, _ := tokenUserIDClaim.(float64)
+
+	if uint(tokenUserIDFloat) != requestedUserID {
+		return fmt.Errorf("unauthorized access")
+	}
+
+	return nil
+}
+
+func buildUserScores(matchingResponses []models.UserResponse) []User {
+	scoreResult := make(map[uint]User)
+
+	for _, matchingResponse := range matchingResponses {
+		otherUserID := matchingResponse.UserID
+
+		if user, exists := scoreResult[otherUserID]; !exists {
+			scoreResult[otherUserID] = User{
+				UserId:            otherUserID,
+				Name:              matchingResponse.User.Name,
+				ProfilePictureURL: matchingResponse.User.ProfilePictureURL,
+				Score:             1,
 			}
+		} else {
+			user.Score++
+			scoreResult[otherUserID] = user
 		}
-
-		user := scoreResult[int(response.UserID)]
-		user.Score++
-		scoreResult[int(response.UserID)] = user
 	}
 
-	c.JSON(http.StatusOK, scoreResult)
+	var users []User
+	for _, user := range scoreResult {
+		users = append(users, user)
+	}
+
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].Score > users[j].Score
+	})
+
+	return users
 }
 
 func validateFileUploaded(header *multipart.FileHeader) bool {
