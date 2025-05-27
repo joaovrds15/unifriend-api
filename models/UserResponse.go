@@ -55,16 +55,3 @@ func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers [
 
 	return matchingResponses, nil
 }
-
-func (response *UserResponse) GetUsersWithSameResponses() ([]UserResponse, error) {
-	var usersResponses []UserResponse
-
-	if err := DB.Where(
-		"user_id != ? AND question_id = ? AND option_id = ?",
-		response.UserID, response.QuestionID, response.OptionID,
-	).Find(&usersResponses).Error; err != nil {
-		return usersResponses, err
-	}
-
-	return usersResponses, nil
-}
