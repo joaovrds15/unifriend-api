@@ -900,16 +900,13 @@ func TestGetUserResultWithMatches(t *testing.T) {
 
 	assert.Equal(t, false, response["error"])
 
-	data, ok := response["data"].(map[string]interface{})
-	assert.True(t, ok)
-	assert.NotEmpty(t, data)
+	dataInterface, ok := response["data"].([]interface{})
+	assert.True(t, ok, "data should be a slice")
+	assert.NotEmpty(t, dataInterface)
 
-	otherUserIDStr := strconv.FormatUint(uint64(otherUser.ID), 10)
-	matchData, exists := data[otherUserIDStr].(map[string]interface{})
-	assert.True(t, exists)
-
-	assert.Equal(t, float64(otherUser.ID), matchData["user_id"])
-	assert.Equal(t, otherUser.Name, matchData["name"])
-	assert.Equal(t, otherUser.ProfilePictureURL, matchData["profile_picture_url"])
-	assert.Equal(t, float64(1), matchData["score"])
+	firstUser := dataInterface[0].(map[string]interface{})
+	assert.Equal(t, float64(otherUser.ID), firstUser["user_id"])
+	assert.Equal(t, otherUser.Name, firstUser["name"])
+	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
+	assert.Equal(t, float64(1), firstUser["score"])
 }
