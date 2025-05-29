@@ -1418,3 +1418,115 @@ func TestVerifyEmailCodeSuccess(t *testing.T) {
 	assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
 	assert.Contains(t, rec.Header().Get("Set-Cookie"), "registration_token")
 }
+
+func TestGetUserResponsesInvalidToken(t *testing.T) {
+
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	userInvalid := factory.UserFactory()
+
+	models.DB.Create(&user)
+	models.DB.Create(&userInvalid)
+
+	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
+	req.Header.Set("Content-Type", "application/json")
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(userInvalid.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	expectedResponse := gin.H{"error": "You are not authorized to access this resource"}
+	var actualResponse gin.H
+	err := json.Unmarshal(rec.Body.Bytes(), &actualResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResponse["error"], actualResponse["error"])
+}
+
+func TestGetUserResultEmptyResults(t *testing.T) {
+
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	userResponses := factory.UserResponseFactory()
+	models.DB.Create(&userResponses)
+	models.DB.Create(&user)
+
+	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
+	req.Header.Set("Content-Type", "application/json")
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	expectedResponse := gin.H{"error": false, "data": make([]controllers.User, 0)}
+	var actualResponse gin.H
+	err := json.Unmarshal(rec.Body.Bytes(), &actualResponse)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResponse["error"], actualResponse["error"])
+}
+
+func TestGetUserResultWithMatches(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	models.DB.Create(&user)
+
+	userResponse := factory.UserResponseFactory()
+	userResponse.UserID = user.ID
+	models.DB.Create(&userResponse)
+
+	otherUser := factory.UserFactory()
+	models.DB.Create(&otherUser)
+
+	matchingResponse := factory.UserResponseFactory()
+	matchingResponse.UserID = otherUser.ID
+	matchingResponse.QuestionID = userResponse.QuestionID
+	matchingResponse.OptionID = userResponse.OptionID
+	models.DB.Create(&matchingResponse)
+
+	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
+	req.Header.Set("Content-Type", "application/json")
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var response gin.H
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, false, response["error"])
+
+	dataInterface, ok := response["data"].([]interface{})
+	assert.True(t, ok, "data should be a slice")
+	assert.NotEmpty(t, dataInterface)
+
+	firstUser := dataInterface[0].(map[string]interface{})
+	assert.Equal(t, float64(otherUser.ID), firstUser["user_id"])
+	assert.Equal(t, otherUser.Name, firstUser["name"])
+	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
+	assert.Equal(t, float64(1), firstUser["score"])
+}
