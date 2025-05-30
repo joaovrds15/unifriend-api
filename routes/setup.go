@@ -29,8 +29,16 @@ func SetupRoutes(r *gin.Engine) {
 			log.Fatalf("Failed to create SES client: %v", err)
 		}
 
-		register.POST("/upload-image", func(c *gin.Context) {
-			controllers.UploadProfileImage(c, s3Client)
+		private.PUT("/users/:user_id/profile-picture", func(c *gin.Context) {
+			controllers.UpdateUserProfilePicture(c, s3Client)
+		})
+
+		private.POST("/users/:user_id/images", func(c *gin.Context) {
+			controllers.AddUserImage(c, s3Client)
+		})
+
+		private.DELETE("/users/:user_id/images/:image_id", func(c *gin.Context) {
+			controllers.DeleteUserImage(c)
 		})
 
 		public.GET("/verify/email/:email", func(c *gin.Context) {
