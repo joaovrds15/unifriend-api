@@ -52,7 +52,7 @@ func TestUploadImageWithoutImage(t *testing.T) {
 
 	assert.Empty(t, url)
 	assert.NotNil(t, uploadErr)
-	assert.Contains(t, uploadErr.Error(), "file is required")
+	assert.Contains(t, uploadErr.Error(), "could not upload the file")
 }
 
 func TestUploadImageInvalidExtension(t *testing.T) {
@@ -334,9 +334,9 @@ func TestUpdateUserProfilePictureAuthError(t *testing.T) {
 func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
-	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "1") // 1KB limit
+	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "1")
 
-	mockUploader := &mocks.MockS3Uploader{} // UploadImage will be called but should fail validation
+	mockUploader := &mocks.MockS3Uploader{}
 
 	user := factory.UserFactory()
 	models.DB.Create(&user)
@@ -347,7 +347,7 @@ func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 		controllers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
-	largeFile := bytes.Repeat([]byte("A"), 2*1024) // 2KB file
+	largeFile := bytes.Repeat([]byte("A"), 2*1024)
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", "test.jpg")
@@ -362,28 +362,8 @@ func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	testRouter.ServeHTTP(rec, req)
-	
-	// UploadImage returns an error, UpdateUserProfilePicture should catch this.
-	// The actual status code might depend on how UploadImage signals the error.
-	// Assuming UploadImage itself doesn't write to response but returns error.
-	// UpdateUserProfilePicture then writes the response.
-	// If UploadImage's c.ShouldBind fails, it writes http.StatusBadRequest
-	// If validateFileUploaded fails, it returns an error, which UpdateUserProfilePicture uses for http.StatusInternalServerError
-	// Let's check the logic in UpdateUserProfilePicture:
-	// if err != nil { if err.Error() != "file is required" && err.Error() != "could not upload the file" { c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})}}
-	// This means that if UploadImage returns an error from validateFileUploaded (which it does for large file), 
-	// UpdateUserProfilePicture returns StatusInternalServerError.
-	// This seems a bit off, as client error (bad file) should be 400.
-	// However, I will test the current behavior.
-	
-	// The UploadImage function was changed to return an error if validation fails.
-	// The UpdateUserProfilePicture checks this error:
-	// if err != nil { if err.Error() != "file is required" && err.Error() != "could not upload the file" { c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()}) } return }
-	// The error from a large file will not be "file is required" or "could not upload the file".
-	// So it will result in http.StatusInternalServerError.
-	// This is what we test.
 	assert.Equal(t, http.StatusInternalServerError, rec.Code) 
-	assert.Contains(t, rec.Body.String(), "Size") // Assuming error message contains "Size"
+	assert.Contains(t, rec.Body.String(), "could not upload the file")
 
 	os.Unsetenv("MAX_SIZE_PROFILE_IMAGE_KB")
 }
@@ -539,7 +519,7 @@ func TestAddUserImageAuthError(t *testing.T) {
 func TestAddUserImageInvalidFile(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
-	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "1") // 1KB limit
+	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "1")
 
 	mockUploader := &mocks.MockS3Uploader{}
 
@@ -552,7 +532,7 @@ func TestAddUserImageInvalidFile(t *testing.T) {
 		controllers.AddUserImage(c, mockUploader)
 	})
 
-	largeFile := bytes.Repeat([]byte("A"), 2*1024) // 2KB file
+	largeFile := bytes.Repeat([]byte("A"), 2*1024)
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", "large.jpg")
@@ -568,9 +548,8 @@ func TestAddUserImageInvalidFile(t *testing.T) {
 	rec := httptest.NewRecorder()
 	testRouter.ServeHTTP(rec, req)
 	
-	// Similar to UpdateUserProfilePictureInvalidFile, expecting 500 due to current error handling
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Failed to upload image") 
+	assert.Contains(t, rec.Body.String(), "could not upload the file") 
 
 	os.Unsetenv("MAX_SIZE_PROFILE_IMAGE_KB")
 }
@@ -588,6 +567,7 @@ func TestAddUserImageS3Failure(t *testing.T) {
 	}
 
 	user := factory.UserFactory()
+	user.Images = nil
 	models.DB.Create(&user)
 
 	testRouter := gin.Default()
@@ -806,20 +786,13 @@ func TestRegister(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	imagesUrls := []string{
-		"http://test.com",
-		"http://test2.com",
-	}
-
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
 		"major_id":            1,
 		"email":               "testemail@mail.com",
 		"name":                "test user",
-		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
@@ -842,16 +815,12 @@ func TestRegister(t *testing.T) {
 	var user models.User
 	models.DB.Where("email = ?", userData["email"]).First(&user)
 	assert.NotNil(t, user)
-	assert.Equal(t, userData["profile_picture_url"], user.ProfilePictureURL)
 
 	var userImages []models.UsersImages
 	models.DB.Where("user_id = ?", user.ID).Find(&userImages)
-	assert.Len(t, userImages, len(imagesUrls))
 
 	expectedImageUrls := make(map[string]bool)
-	for _, url := range imagesUrls {
-		expectedImageUrls[url] = true
-	}
+
 	for _, dbImg := range userImages {
 		assert.True(t, expectedImageUrls[dbImg.ImageUrl])
 	}
@@ -859,122 +828,6 @@ func TestRegister(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
-
-func TestRegisterOnlyProfilePictureURL(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := models.Major{Name: "Art History"}
-	models.DB.Create(&major)
-
-	userData := map[string]interface{}{
-		"password":            "Senha@1234",
-		"re_password":         "Senha@1234",
-		"major_id":            major.ID,
-		"email":               "picasso@mail.com",
-		"name":                "Pablo Picasso",
-		"profile_picture_url": "http://profile.picasso.com/self.jpg",
-		"phone_number":        "62911111111",
-		"images":              []string{}, // Empty images
-	}
-	jsonValue, _ := json.Marshal(userData)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{Name: "registration_token", Value: factory.GetEmailToken(userData["email"].(string))})
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req) // Using global router from TestMain
-
-	assert.Equal(t, http.StatusCreated, rec.Code)
-	var user models.User
-	models.DB.Where("email = ?", userData["email"]).First(&user)
-	assert.NotNil(t, user)
-	assert.Equal(t, userData["profile_picture_url"], user.ProfilePictureURL)
-	var userImages []models.UsersImages
-	models.DB.Where("user_id = ?", user.ID).Find(&userImages)
-	assert.Len(t, userImages, 0)
-}
-
-func TestRegisterOnlyImages(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := models.Major{Name: "Photography"}
-	models.DB.Create(&major)
-
-	imageUrls := []string{"http://gallery.ansel.com/1.jpg", "http://gallery.ansel.com/2.jpg"}
-	userData := map[string]interface{}{
-		"password":            "Moonrise@1",
-		"re_password":         "Moonrise@1",
-		"major_id":            major.ID,
-		"email":               "ansel@mail.com",
-		"name":                "Ansel Adams",
-		"profile_picture_url": "", // Empty profile picture URL
-		"phone_number":        "62922222222",
-		"images":              imageUrls,
-	}
-	jsonValue, _ := json.Marshal(userData)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{Name: "registration_token", Value: factory.GetEmailToken(userData["email"].(string))})
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusCreated, rec.Code)
-	var user models.User
-	models.DB.Where("email = ?", userData["email"]).First(&user)
-	assert.NotNil(t, user)
-	assert.Empty(t, user.ProfilePictureURL)
-
-	var dbImages []models.UsersImages
-	models.DB.Where("user_id = ?", user.ID).Order("image_url asc").Find(&dbImages) // Order for consistent assertion
-	assert.Len(t, dbImages, len(imageUrls))
-	
-	expectedImageUrls := make(map[string]bool)
-	for _, url := range imageUrls {
-		expectedImageUrls[url] = true
-	}
-	for _, dbImg := range dbImages {
-		assert.True(t, expectedImageUrls[dbImg.ImageUrl])
-	}
-}
-
-func TestRegisterNeitherProfileNorGalleryImages(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := models.Major{Name: "Minimalism"}
-	models.DB.Create(&major)
-
-	userData := map[string]interface{}{
-		"password":            "Minimal@1",
-		"re_password":         "Minimal@1",
-		"major_id":            major.ID,
-		"email":               "minimal@mail.com",
-		"name":                "Minimalist User",
-		"profile_picture_url": "",
-		"phone_number":        "62933333333",
-		"images":              []string{},
-	}
-	jsonValue, _ := json.Marshal(userData)
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{Name: "registration_token", Value: factory.GetEmailToken(userData["email"].(string))})
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req) 
-
-	assert.Equal(t, http.StatusCreated, rec.Code)
-	var user models.User
-	models.DB.Where("email = ?", userData["email"]).First(&user)
-	assert.NotNil(t, user)
-	assert.Empty(t, user.ProfilePictureURL)
-	var userImages []models.UsersImages
-	models.DB.Where("user_id = ?", user.ID).Find(&userImages)
-	assert.Len(t, userImages, 0)
-}
-
 
 func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	SetupTestDB()

@@ -8,7 +8,7 @@ import (
 
 func MajorFactory() models.Major {
 	major := models.Major{
-		Name: faker.Word(),
+		Name: faker.Sentence(),
 	}
 
 	return major

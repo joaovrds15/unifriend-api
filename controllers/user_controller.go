@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -49,9 +50,7 @@ type RegisterInput struct {
 	Email             string   `json:"email" binding:"required"`
 	Name              string   `json:"name" binding:"required"`
 	PhoneNumber       string   `json:"phone_number" binding:"required"`
-	ProfilePictureURL string   `json:"profile_picture_url"`
 	MajorID           uint     `json:"major_id" binding:"required"`
-	Images            []string `json:"images" binding:"required"`
 }
 
 type LoginInput struct {
@@ -111,14 +110,9 @@ func Register(c *gin.Context) {
 
 	imagesUrl := []models.UsersImages{}
 
-	for _, image := range input.Images {
-		imagesUrl = append(imagesUrl, models.UsersImages{ImageUrl: image})
-	}
-
 	u.Password = input.Password
 	u.Email = input.Email
 	u.Name = input.Name
-	u.ProfilePictureURL = input.ProfilePictureURL
 	u.MajorID = input.MajorID
 	u.PhoneNumber = input.PhoneNumber
 	u.Images = imagesUrl
@@ -178,11 +172,11 @@ func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
 	var imageValidator ImageUploadInput
 
 	if err := c.ShouldBind(&imageValidator); err != nil {
-		return "", err
+		return "", errors.New("could not upload the file")
 	}
 
 	if !validateFileUploaded(imageValidator.File) {
-		return "", err
+		return "", errors.New("could not upload the file")
 	}
 
 	UUId := uuid.New()
@@ -190,6 +184,7 @@ func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
 
 	imageFile, _ := imageValidator.File.Open()
 	uploadResult, err := uploader.UploadImage(imageFile, fileName)
+
 	if err != nil {
 		return "", err
 	}
@@ -199,6 +194,7 @@ func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
 
 func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
 	userID, exists := c.Get("userID")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
 		return
@@ -212,11 +208,7 @@ func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
 
 	imageURL, err := UploadImage(c, uploader)
 	if err != nil {
-		// UploadImage already sends a response in case of error with binding or validation.
-		// If the error is from the uploader itself, we send a response.
-		if err.Error() != "file is required" && err.Error() != "could not upload the file" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -250,11 +242,7 @@ func AddUserImage(c *gin.Context, uploader services.S3Uploader) {
 
 	imageURL, err := UploadImage(c, uploader)
 	if err != nil {
-		// UploadImage handles JSON response for binding/validation errors.
-		// For other errors (e.g. S3 upload issue), we might need to send a response.
-		if err.Error() != "file is required" && err.Error() != "could not upload the file" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image: " + err.Error()})
 		return
 	}
 
