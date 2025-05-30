@@ -193,7 +193,7 @@ func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
 }
 
 func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
@@ -228,7 +228,7 @@ func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
 }
 
 func AddUserImage(c *gin.Context, uploader services.S3Uploader) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
 		return
@@ -260,7 +260,7 @@ func AddUserImage(c *gin.Context, uploader services.S3Uploader) {
 }
 
 func DeleteUserImage(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
 		return
