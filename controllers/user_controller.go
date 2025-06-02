@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -197,7 +198,7 @@ func deleteImage(filename string, uploader services.S3Uploader) (error) {
 		return nil
 	}
 
-	err := uploader.DeleteImage(filename)
+	err := uploader.DeleteImage(path.Base(filename))
 	if err != nil {
 		return nil
 	}
