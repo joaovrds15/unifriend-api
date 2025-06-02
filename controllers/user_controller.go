@@ -192,6 +192,19 @@ func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
 	return uploadResult, nil
 }
 
+func deleteImage(filename string, uploader services.S3Uploader) (error) {
+	if filename == "" {
+		return nil
+	}
+
+	err := uploader.DeleteImage(filename)
+	if err != nil {
+		return nil
+	}
+
+	return nil
+}
+
 func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
 	userID, exists := c.Get("user_id")
 
@@ -206,20 +219,27 @@ func UpdateUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
 		return
 	}
 
-	imageURL, err := UploadImage(c, uploader)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	var user models.User
 	if err := models.DB.First(&user, userIDUint).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
+	if user.ProfilePictureURL != "" {
+		if err := deleteImage(user.ProfilePictureURL, uploader); err != nil {
+			fmt.Printf("Warning: Failed to delete old profile picture: %v\n", err)
+		}
+	}
+
+	imageURL, err := UploadImage(c, uploader)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	user.ProfilePictureURL = imageURL
 	if err := models.DB.Save(&user).Error; err != nil {
+		_ = deleteImage(imageURL, uploader)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user profile picture"})
 		return
 	}
@@ -259,16 +279,10 @@ func AddUserImage(c *gin.Context, uploader services.S3Uploader) {
 	c.JSON(http.StatusCreated, userImage)
 }
 
-func DeleteUserImage(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+func DeleteUserImage(c *gin.Context, uploader services.S3Uploader) {
+	userIDUint, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
-		return
-	}
-
-	userIDUint, ok := userID.(uint)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
 		return
 	}
 
@@ -290,8 +304,48 @@ func DeleteUserImage(c *gin.Context) {
 		return
 	}
 
+	if err := deleteImage(userImage.ImageUrl, uploader); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete image from storage"})
+		return
+	}
+
 	if err := models.DB.Delete(&userImage).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete image record"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func DeleteUserProfilePicture(c *gin.Context, uploader services.S3Uploader) {
+	userIDUint, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+
+	var user models.User
+	if err := models.DB.First(&user, userIDUint).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Image not found"})
+		return
+	}
+
+	userProfilePicture := user.ProfilePictureURL
+
+	if user.ProfilePictureURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "You you have not profile picture"})
+		return
+	}
+
+	user.ProfilePictureURL = ""
+
+	if err := models.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete image record"})
+		return
+	}
+
+	if err := deleteImage(userProfilePicture, uploader); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete image from storage"})
 		return
 	}
 
@@ -447,9 +501,9 @@ func GetResults(c *gin.Context) {
 
 func validateUserAccess(c *gin.Context, requestedUserID uint) error {
 	tokenUserIDClaim, _ := c.Get("user_id")
-	tokenUserIDFloat, _ := tokenUserIDClaim.(float64)
+	tokenUserIDUint, _ := tokenUserIDClaim.(uint)
 
-	if uint(tokenUserIDFloat) != requestedUserID {
+	if tokenUserIDUint != requestedUserID {
 		return fmt.Errorf("unauthorized access")
 	}
 

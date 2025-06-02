@@ -18,6 +18,9 @@ func SetupRoutes(r *gin.Engine) {
 
 	private.Use(middleware.AuthMiddleware())
 	register.Use(middleware.AuthRegistrationMiddleware())
+	
+	users := private.Group("/users")
+
 	if gin.Mode() != gin.TestMode {
 		s3Client, err := services.NewS3Client()
 		if err != nil {
@@ -29,16 +32,24 @@ func SetupRoutes(r *gin.Engine) {
 			log.Fatalf("Failed to create SES client: %v", err)
 		}
 
-		private.PUT("/users/:user_id/profile-picture", func(c *gin.Context) {
+		users.POST("/profile-picture", func(c *gin.Context) {
 			controllers.UpdateUserProfilePicture(c, s3Client)
 		})
 
-		private.POST("/users/:user_id/images", func(c *gin.Context) {
+		users.PUT("/profile-picture", func(c *gin.Context) {
+			controllers.UpdateUserProfilePicture(c, s3Client)
+		})
+
+		users.DELETE("/profile-picture", func(c *gin.Context) {
+			controllers.DeleteUserProfilePicture(c, s3Client)
+		})
+
+		users.POST("/images", func(c *gin.Context) {
 			controllers.AddUserImage(c, s3Client)
 		})
 
-		private.DELETE("/users/:user_id/images/:image_id", func(c *gin.Context) {
-			controllers.DeleteUserImage(c)
+		users.DELETE("/images/:image_id", func(c *gin.Context) {
+			controllers.DeleteUserImage(c, s3Client)
 		})
 
 		public.GET("/verify/email/:email", func(c *gin.Context) {
@@ -47,15 +58,15 @@ func SetupRoutes(r *gin.Engine) {
 	}
 
 	public.GET("/verify/code/:email", controllers.GetVerificationCodeExpiration)
-	public.POST("/verify/email", controllers.VerifyEmailCode)
-	register.POST("/register", controllers.Register)
-	private.POST("/answer/save", controllers.SaveAnswers)
 	private.GET("/questions", controllers.GetQuestions)
 	private.GET("/get-results/user/:user_id", controllers.GetResults)
-	public.POST("/login", controllers.Login)
 	public.GET("/health", Ping)
 	public.GET("/majors", controllers.GetMajors)
 	public.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	public.POST("/verify/email", controllers.VerifyEmailCode)
+	register.POST("/register", controllers.Register)
+	private.POST("/answer/save", controllers.SaveAnswers)
+	public.POST("/login", controllers.Login)
 }
 
 // PingExample godoc

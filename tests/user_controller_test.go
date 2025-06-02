@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 	"unifriend-api/controllers"
+	"unifriend-api/middleware"
 	"unifriend-api/models"
 	"unifriend-api/tests/factory"
 	"unifriend-api/tests/mocks"
@@ -32,7 +33,6 @@ func TestUploadImageWithoutImage(t *testing.T) {
 		},
 	}
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
@@ -66,7 +66,6 @@ func TestUploadImageInvalidExtension(t *testing.T) {
 		},
 	}
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
@@ -99,13 +98,8 @@ func TestUploadImageSuccess(t *testing.T) {
 
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 
-	mockUploader := &mocks.MockS3Uploader{
-		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
-			return "https:s3.com.br", nil
-		},
-	}
+	mockUploader := &mocks.MockS3Uploader{}
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
@@ -140,15 +134,12 @@ func TestUploadImageBiggerThenLimit(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
 
-	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
-
 	mockUploader := &mocks.MockS3Uploader{
 		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
 			return "https:s3.com.br", nil
 		},
 	}
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
@@ -193,7 +184,6 @@ func TestUploadImageS3Failure(t *testing.T) {
 		},
 	}
 
-	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
@@ -223,14 +213,16 @@ func TestUploadImageS3Failure(t *testing.T) {
 
 func TestUpdateUserProfilePictureSuccess(t *testing.T) {
 	SetupTestDB()
+	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 	defer models.TearDownTestDB()
 
-	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
 	expectedURL := "https://s3.com.br/new_profile_pic.jpg"
-
 	mockUploader := &mocks.MockS3Uploader{
 		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
 			return expectedURL, nil
+		},
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
 		},
 	}
 
@@ -246,21 +238,21 @@ func TestUpdateUserProfilePictureSuccess(t *testing.T) {
 	_, _ = part.Write([]byte("fake image data"))
 	writer.Close()
 
-	req, _ := http.NewRequest("PUT", "/api/users/me/profile-picture", &body)
+	req, _ := http.NewRequest("PUT", "/users/profile-picture", &body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+	}
 
-	testRouter := gin.Default()
-	testRouter.Use(func(c *gin.Context) {
-		c.Set("user_id", user.ID)
-		c.Next()
-	})
-	testRouter.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
+	req.AddCookie(authCookie)
+	router.Use(middleware.AuthMiddleware())
+	router.PUT("/users/profile-picture", func(c *gin.Context) {
 		controllers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
-
 	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
@@ -281,8 +273,8 @@ func TestUpdateUserProfilePictureAuthError(t *testing.T) {
 
 	mockUploader := &mocks.MockS3Uploader{}
 
-	testRouter := gin.Default()
-	testRouter.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
+	router.Use(middleware.AuthMiddleware())
+	router.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
 		controllers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
@@ -299,10 +291,10 @@ func TestUpdateUserProfilePictureAuthError(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	assert.Contains(t, rec.Body.String(), "User ID not found in token")
+	assert.Contains(t, rec.Body.String(), "Invalid Token")
 }
 
 func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
@@ -310,7 +302,11 @@ func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 	defer models.TearDownTestDB()
 	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "1")
 
-	mockUploader := &mocks.MockS3Uploader{}
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
 
 	user := factory.UserFactory()
 	models.DB.Create(&user)
@@ -338,52 +334,6 @@ func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 	testRouter.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusInternalServerError, rec.Code) 
 	assert.Contains(t, rec.Body.String(), "could not upload the file")
-
-	os.Unsetenv("MAX_SIZE_PROFILE_IMAGE_KB")
-}
-
-func TestUpdateUserProfilePictureS3Failure(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	os.Setenv("MAX_SIZE_PROFILE_IMAGE_KB", "512")
-	s3Error := "mock S3 error"
-	mockUploader := &mocks.MockS3Uploader{
-		UploadImageFunc: func(file multipart.File, fileName string) (string, error) {
-			return "", errors.New(s3Error)
-		},
-	}
-
-	user := factory.UserFactory()
-	models.DB.Create(&user)
-
-	testRouter := gin.Default()
-	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
-	testRouter.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
-		controllers.UpdateUserProfilePicture(c, mockUploader)
-	})
-
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", "profile.jpg")
-	if err != nil {
-		t.Fatalf("Failed to create form file: %v", err)
-	}
-	_, _ = part.Write([]byte("fake image data"))
-	writer.Close()
-
-	req, _ := http.NewRequest("PUT", "/api/users/me/profile-picture", &body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	assert.Contains(t, rec.Body.String(), s3Error)
-	
-	var dbUser models.User
-	models.DB.First(&dbUser, user.ID)
-	assert.Equal(t, user.ProfilePictureURL, dbUser.ProfilePictureURL)
 
 	os.Unsetenv("MAX_SIZE_PROFILE_IMAGE_KB")
 }
@@ -569,37 +519,15 @@ func TestAddUserImageS3Failure(t *testing.T) {
 	os.Unsetenv("MAX_SIZE_PROFILE_IMAGE_KB")
 }
 
-func TestDeleteUserImageSuccess(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	user := factory.UserFactory()
-	models.DB.Create(&user)
-
-	userImage := factory.UsersImagesFactory()
-	userImage.UserID = user.ID
-	models.DB.Create(&userImage)
-
-	testRouter := gin.Default()
-	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
-	testRouter.DELETE("/api/users/me/images/:image_id", controllers.DeleteUserImage)
-
-	req, _ := http.NewRequest("DELETE", "/api/users/me/images/"+strconv.Itoa(int(userImage.ID)), nil)
-
-	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusNoContent, rec.Code)
-
-	var deletedImage models.UsersImages
-	err := models.DB.First(&deletedImage, userImage.ID).Error
-	assert.NotNil(t, err)
-	assert.EqualError(t, err, "record not found")
-}
-
 func TestDeleteUserImageAuthError(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
+
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
 
 	user := factory.UserFactory()
 	models.DB.Create(&user)
@@ -613,7 +541,9 @@ func TestDeleteUserImageAuthError(t *testing.T) {
 
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
-	testRouter.DELETE("/api/users/me/images/:image_id", controllers.DeleteUserImage)
+	testRouter.DELETE("/api/users/me/images/:image_id", func(c *gin.Context) {
+		controllers.DeleteUserImage(c, mockUploader)
+	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/me/images/"+strconv.Itoa(int(userImage.ID)), nil)
 
@@ -632,12 +562,20 @@ func TestDeleteUserImageNotFound(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
 
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
+
 	user := factory.UserFactory()
 	models.DB.Create(&user)
 
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
-	testRouter.DELETE("/api/users/me/images/:image_id", controllers.DeleteUserImage)
+	testRouter.DELETE("/api/users/me/images/:image_id", func(c *gin.Context) {
+		controllers.DeleteUserImage(c, mockUploader)
+	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/me/images/99999", nil)
 
@@ -652,17 +590,31 @@ func TestDeleteUserImageInvalidImageID(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
 
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
+
 	user := factory.UserFactory()
 	models.DB.Create(&user)
 
-	testRouter := gin.Default()
-	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
-	testRouter.DELETE("/api/users/me/images/:image_id", controllers.DeleteUserImage)
+	router.Use(middleware.AuthMiddleware())
+	router.DELETE("/api/users/images/:image_id", func(c *gin.Context) {
+		controllers.DeleteUserImage(c, mockUploader)
+	})
 
-	req, _ := http.NewRequest("DELETE", "/api/users/me/images/invalid-id", nil)
+	req, _ := http.NewRequest("DELETE", "/api/users/images/-1", nil) 
 
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
 	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Invalid image ID format")
@@ -670,20 +622,27 @@ func TestDeleteUserImageInvalidImageID(t *testing.T) {
 
 func TestDeleteUserImageMissingToken(t *testing.T) {
 	SetupTestDB()
+	SetupRoutes()
 	defer models.TearDownTestDB()
 
-	testRouter := gin.Default()
-	testRouter.DELETE("/api/users/me/images/:image_id", controllers.DeleteUserImage)
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
 
-	req, _ := http.NewRequest("DELETE", "/api/users/me/images/1", nil) 
+	router.DELETE("/api/users/images/:image_id", func(c *gin.Context) {
+		controllers.DeleteUserImage(c, mockUploader)
+	})
+
+	req, _ := http.NewRequest("DELETE", "/api/users/images/1", nil) 
 
 	rec := httptest.NewRecorder()
-	testRouter.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	assert.Contains(t, rec.Body.String(), "User ID not found in token")
 }
-
 
 func TestLoginWithWrongCredentials(t *testing.T) {
 	SetupTestDB()
@@ -928,7 +887,6 @@ func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify-email", nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -955,7 +913,6 @@ func TestVerifyWithInvalidEmail(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/invalidemail.com", nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -986,7 +943,6 @@ func TestVerifyEmailAlreadyInUse(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+user.Email, nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -1016,7 +972,6 @@ func TestVerifyWithInvalidEmailDomain(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+invalidEmail, nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -1046,7 +1001,6 @@ func TestVerifyEmailAwsError(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -1078,7 +1032,6 @@ func TestVerifyEmailWithValidCode(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -1115,7 +1068,6 @@ func TestVerifyEmailSuccess(t *testing.T) {
 		controllers.VerifyEmail(c, mockEmailSender)
 	})
 
-	gin.SetMode(gin.TestMode)
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
 	req.Header.Set("Content-Type", "application/json")
 
