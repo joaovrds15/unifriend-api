@@ -92,6 +92,7 @@ func TestDeleteUserImageMissingToken(t *testing.T) {
 
 func TestDeleteUserImageInvalidImageID(t *testing.T) {
 	SetupTestDB()
+	SetupRoutes()
 	defer models.TearDownTestDB()
 
 	mockUploader := &mocks.MockS3Uploader{
