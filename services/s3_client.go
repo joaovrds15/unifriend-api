@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type S3Client struct {
@@ -55,4 +56,17 @@ func (s *S3Client) UploadImage(file multipart.File, fileName string) (string, er
 	}
 
 	return result.Location, uploadErr
+}
+
+func (s *S3Client) DeleteImage(fileName string) error {
+	var objectIds []types.ObjectIdentifier
+	objectIds = append(objectIds, types.ObjectIdentifier{Key: aws.String(fileName)})
+
+	deleter := manager.DeleteObjectsAPIClient(s.client)
+	_, deleteErr := deleter.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
+		Bucket: aws.String(s.bucket),
+		Delete: &types.Delete{Objects: objectIds},
+	})
+
+	return deleteErr
 }

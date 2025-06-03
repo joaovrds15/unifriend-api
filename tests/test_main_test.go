@@ -12,12 +12,9 @@ import (
 
 var router *gin.Engine
 
-func TestMain(m *testing.M) {
-
-	router = gin.Default()
+func TestMain(m *testing.M) {	
 	gin.SetMode(gin.TestMode)
-	routes.SetupRoutes(router)
-
+	SetupRoutes()
 	code := m.Run()
 
 	os.Exit(code)
@@ -25,6 +22,11 @@ func TestMain(m *testing.M) {
 
 func SetupTestDB() {
 	models.SetupTestDB()
+}
+
+func SetupRoutes() {
+	router = gin.Default()
+	routes.SetupRoutes(router)
 }
 
 func SetupRouterWithoutMiddleware() *gin.Engine {
