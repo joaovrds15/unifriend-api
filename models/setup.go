@@ -54,11 +54,11 @@ func ConnectDataBase() {
 	}
 
 	newLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // Output to stdout
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
-			SlowThreshold: time.Second, // Slow SQL threshold
-			LogLevel:      logger.Info, // Log all queries
-			Colorful:      true,        // Enable colorful printing
+			SlowThreshold: time.Second,
+			LogLevel:      logger.Info,
+			Colorful:      true,
 		},
 	)
 
@@ -82,15 +82,15 @@ func ConnectDataBase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(
-		&User{},
-		&Major{},
-		&OptionTable{},
-		&QuestionTable{},
-		&QuizTable{},
-		&UserResponse{},
-		&EmailDomains{},
-		&EmailsVerification{},
-		&UsersImages{},
-	)
+	// DB.AutoMigrate(
+	// 	&User{},
+	// 	&Major{},
+	// 	&OptionTable{},
+	// 	&QuestionTable{},
+	// 	&QuizTable{},
+	// 	&UserResponse{},
+	// 	&EmailDomains{},
+	// 	&EmailsVerification{},
+	// 	&UsersImages{},
+	// )
 }
