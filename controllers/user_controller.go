@@ -61,6 +61,15 @@ type LoginInput struct {
 
 type GetResultsInput struct {
 	UserId uint `uri:"user_id" binding:"required"`
+	Page int `form:"page"`
+	Limit int `form:"limit"`
+}
+type PaginatedUserResponse struct {
+	Data []User `json:"data"`
+	Page int `json:"page"`
+	Limit int `json:"limit"`
+	Total int `json:"total"`
+	TotalPages int `json:"total_pages"`
 }
 
 type VerifyEmailInput struct {
@@ -467,6 +476,21 @@ func GetResults(c *gin.Context) {
 		return
 	}
 
+	if err := c.ShouldBindQuery(&userGetResultsInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "Invalid pagination Data"})
+		return
+	}
+
+	if userGetResultsInput.Page <= 0 {
+        userGetResultsInput.Page = 1
+    }
+    if userGetResultsInput.Limit <= 0 {
+        userGetResultsInput.Limit = 10
+    }
+    if userGetResultsInput.Limit > 100 {
+        userGetResultsInput.Limit = 100 // Max limit
+    }
+
 	if err := validateUserAccess(c, userGetResultsInput.UserId); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this resource"})
 		return
@@ -479,9 +503,12 @@ func GetResults(c *gin.Context) {
 	}
 
 	if len(currentUserResponses) == 0 {
-		c.JSON(200, gin.H{
-			"error": false,
-			"data":  make([]User, 0),
+		c.JSON(200, PaginatedUserResponse{
+			Data: make([]User, 0),
+			Page: userGetResultsInput.Page,
+			Limit: userGetResultsInput.Limit,
+			Total: 0,
+			TotalPages: 0,
 		})
 		return
 	}
@@ -492,12 +519,33 @@ func GetResults(c *gin.Context) {
 		return
 	}
 
-	users := buildUserScores(allMatchingResponsesFromOthers)
+	allUsers := buildUserScores(allMatchingResponsesFromOthers)
 
-	c.JSON(200, gin.H{
-		"error": false,
-		"data":  users,
-	})
+	total := len(allUsers)
+    totalPages := (total + userGetResultsInput.Limit - 1) / userGetResultsInput.Limit
+
+	offset := (userGetResultsInput.Page - 1) * userGetResultsInput.Limit
+    
+    var paginatedUsers []User
+    if offset < total {
+        end := offset + userGetResultsInput.Limit
+        if end > total {
+            end = total
+        }
+        paginatedUsers = allUsers[offset:end]
+    } else {
+        paginatedUsers = make([]User, 0)
+    }
+
+    response := PaginatedUserResponse{
+        Data:       paginatedUsers,
+        Page:       userGetResultsInput.Page,
+        Limit:      userGetResultsInput.Limit,
+        Total:      total,
+        TotalPages: totalPages,
+    }
+
+    c.JSON(200, response)
 }
 
 func validateUserAccess(c *gin.Context, requestedUserID uint) error {

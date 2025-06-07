@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -1263,7 +1264,8 @@ func TestGetUserResultEmptyResults(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	expectedResponse := gin.H{"error": false, "data": make([]controllers.User, 0)}
+	expectedResponse := gin.H{"data": make([]controllers.User, 0), "page" : 1, "limit" : 10, "total" : 0, "total_pages" : 0}
+	fmt.Println(rec.Body.String())
 	var actualResponse gin.H
 	err := json.Unmarshal(rec.Body.Bytes(), &actualResponse)
 	assert.NoError(t, err)
@@ -1308,8 +1310,6 @@ func TestGetUserResultWithMatches(t *testing.T) {
 	err := json.Unmarshal(rec.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
-	assert.Equal(t, false, response["error"])
-
 	dataInterface, ok := response["data"].([]interface{})
 	assert.True(t, ok, "data should be a slice")
 	assert.NotEmpty(t, dataInterface)
@@ -1319,4 +1319,306 @@ func TestGetUserResultWithMatches(t *testing.T) {
 	assert.Equal(t, otherUser.Name, firstUser["name"])
 	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
 	assert.Equal(t, float64(1), firstUser["score"])
+}
+
+func TestGetUserResultsWithPagination(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    userResponse := factory.UserResponseFactory()
+    userResponse.UserID = user.ID
+    models.DB.Create(&userResponse)
+
+    // Create multiple other users with matching responses
+    var otherUsers []models.User
+    for i := 0; i < 15; i++ {
+        otherUser := factory.UserFactory()
+        models.DB.Create(&otherUser)
+        otherUsers = append(otherUsers, otherUser)
+
+        matchingResponse := factory.UserResponseFactory()
+        matchingResponse.UserID = otherUser.ID
+        matchingResponse.QuestionID = userResponse.QuestionID
+        matchingResponse.OptionID = userResponse.OptionID
+        models.DB.Create(&matchingResponse)
+    }
+
+    // Test first page
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=1&limit=10", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 10, len(response.Data))
+    assert.Equal(t, 1, response.Page)
+    assert.Equal(t, 10, response.Limit)
+    assert.Equal(t, 15, response.Total)
+    assert.Equal(t, 2, response.TotalPages)
+
+    // Test second page
+    req2, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=2&limit=10", nil)
+    req2.Header.Set("Content-Type", "application/json")
+    req2.AddCookie(authCookie)
+    rec2 := httptest.NewRecorder()
+    router.ServeHTTP(rec2, req2)
+
+    assert.Equal(t, http.StatusOK, rec2.Code)
+
+    var response2 controllers.PaginatedUserResponse
+    err = json.Unmarshal(rec2.Body.Bytes(), &response2)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 5, len(response2.Data))
+    assert.Equal(t, 2, response2.Page)
+    assert.Equal(t, 10, response2.Limit)
+    assert.Equal(t, 15, response2.Total)
+    assert.Equal(t, 2, response2.TotalPages)
+}
+
+func TestGetUserResultsDefaultPagination(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    userResponse := factory.UserResponseFactory()
+    userResponse.UserID = user.ID
+    models.DB.Create(&userResponse)
+
+    // Create 5 other users with matching responses
+    for i := 0; i < 5; i++ {
+        otherUser := factory.UserFactory()
+        models.DB.Create(&otherUser)
+
+        matchingResponse := factory.UserResponseFactory()
+        matchingResponse.UserID = otherUser.ID
+        matchingResponse.QuestionID = userResponse.QuestionID
+        matchingResponse.OptionID = userResponse.OptionID
+        models.DB.Create(&matchingResponse)
+    }
+
+    // Test without pagination parameters (should use defaults)
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 5, len(response.Data))
+    assert.Equal(t, 1, response.Page) // Default page
+    assert.Equal(t, 10, response.Limit) // Default limit
+    assert.Equal(t, 5, response.Total)
+    assert.Equal(t, 1, response.TotalPages)
+}
+
+func TestGetUserResultsInvalidPaginationParams(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    // Test with invalid page and limit (should use defaults)
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=0&limit=-5", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 1, response.Page) // Default page
+    assert.Equal(t, 10, response.Limit) // Default limit
+}
+
+func TestGetUserResultsLimitExceeded(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    userResponse := factory.UserResponseFactory()
+    userResponse.UserID = user.ID
+    models.DB.Create(&userResponse)
+
+    // Create 10 other users with matching responses
+    for i := 0; i < 10; i++ {
+        otherUser := factory.UserFactory()
+        models.DB.Create(&otherUser)
+
+        matchingResponse := factory.UserResponseFactory()
+        matchingResponse.UserID = otherUser.ID
+        matchingResponse.QuestionID = userResponse.QuestionID
+        matchingResponse.OptionID = userResponse.OptionID
+        models.DB.Create(&matchingResponse)
+    }
+
+    // Test with limit exceeding maximum (should be capped at 100)
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=1&limit=150", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 100, response.Limit) // Capped at maximum
+    assert.Equal(t, 10, len(response.Data))
+}
+
+func TestGetUserResultsPageBeyondTotal(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    userResponse := factory.UserResponseFactory()
+    userResponse.UserID = user.ID
+    models.DB.Create(&userResponse)
+
+    // Create 5 other users with matching responses
+    for i := 0; i < 5; i++ {
+        otherUser := factory.UserFactory()
+        models.DB.Create(&otherUser)
+
+        matchingResponse := factory.UserResponseFactory()
+        matchingResponse.UserID = otherUser.ID
+        matchingResponse.QuestionID = userResponse.QuestionID
+        matchingResponse.OptionID = userResponse.OptionID
+        models.DB.Create(&matchingResponse)
+    }
+
+    // Test requesting page beyond total pages
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=5&limit=10", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 0, len(response.Data)) // Empty data for page beyond total
+    assert.Equal(t, 5, response.Page)
+    assert.Equal(t, 10, response.Limit)
+    assert.Equal(t, 5, response.Total)
+    assert.Equal(t, 1, response.TotalPages)
+}
+
+func TestGetUserResultsEmptyResultsWithPagination(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    userResponses := factory.UserResponseFactory()
+    models.DB.Create(&userResponses)
+    models.DB.Create(&user)
+
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=1&limit=5", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var response controllers.PaginatedUserResponse
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.Equal(t, 0, len(response.Data))
+    assert.Equal(t, 1, response.Page)
+    assert.Equal(t, 5, response.Limit)
+    assert.Equal(t, 0, response.Total)
+    assert.Equal(t, 0, response.TotalPages)
+}
+
+func TestGetUserResultsInvalidPaginationQuery(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    user := factory.UserFactory()
+    models.DB.Create(&user)
+
+    // Test with non-numeric pagination parameters
+    req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10)+"?page=abc&limit=xyz", nil)
+    req.Header.Set("Content-Type", "application/json")
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusBadRequest, rec.Code)
+    assert.Contains(t, rec.Body.String(), "Invalid pagination Data")
 }
