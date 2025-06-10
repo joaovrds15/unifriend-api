@@ -671,61 +671,80 @@ func TestUploadImageWithoutImage(t *testing.T) {
 }
 
 func TestLoginWithWrongCredentials(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
+    SetupTestDB()
+    defer models.TearDownTestDB()
 
-	major := models.Major{
-		Name: "Computer Science",
-	}
+    major := models.Major{
+        Name: "Computer Science",
+    }
 
-	models.DB.Create(&major)
+    models.DB.Create(&major)
 
-	user := factory.UserFactory()
-	user.Email = "teste@mail.com"
-	user.Password = "Wrong@passowrd"
+    user := factory.UserFactory()
+    user.Email = "teste@mail.com"
+    user.Password = "Wrong@passowrd"
 
-	models.DB.Create(&user)
+    models.DB.Create(&user)
 
-	payload := []byte(`{"email": "teste@mail.com", "password": "Right@Password"}`)
-	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
+    payload := []byte(`{"email": "teste@mail.com", "password": "Right@Password"}`)
+    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
+    req.Header.Set("Content-Type", "application/json")
 
-	rec := httptest.NewRecorder()
+    rec := httptest.NewRecorder()
 
-	router.ServeHTTP(rec, req)
+    router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
+    assert.Equal(t, http.StatusUnauthorized, rec.Code)
+    assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
 }
 
 func TestLogin(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
+    SetupTestDB()
+    defer models.TearDownTestDB()
 
-	os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
+    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
 
-	major := models.Major{
-		Name: "Computer Science",
-	}
+    major := models.Major{
+        Name: "Computer Science",
+    }
 
-	models.DB.Create(&major)
+    models.DB.Create(&major)
 
-	user := factory.UserFactory()
-	user.Email = "test@mail.com"
+    user := factory.UserFactory()
+    user.Email = "test@mail.com"
+    user.Password = "Right@Password"
 
-	user.Password = "Right@Password"
+    models.DB.Create(&user)
+    payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
+    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
+    req.Header.Set("Content-Type", "application/json")
 
-	models.DB.Create(&user)
-	payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
-	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
-	req.Header.Set("Content-Type", "application/json")
+    rec := httptest.NewRecorder()
 
-	rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
 
-	router.ServeHTTP(rec, req)
+    assert.Equal(t, http.StatusOK, rec.Code)
+    assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
 
-	assert.Equal(t, http.StatusNoContent, rec.Code)
-	assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
+    var response map[string]interface{}
+    err := json.Unmarshal(rec.Body.Bytes(), &response)
+    assert.NoError(t, err)
+
+    assert.False(t, response["error"].(bool))
+    assert.NotNil(t, response["data"])
+    assert.NotEmpty(t, response["token"])
+
+    userData := response["data"].(map[string]interface{})
+    assert.Equal(t, float64(user.ID), userData["id"])
+    assert.Equal(t, user.Name, userData["name"])
+    assert.Equal(t, user.Email, userData["email"])
+    assert.Equal(t, user.PhoneNumber, userData["phone_number"])
+    assert.Equal(t, user.ProfilePictureURL, userData["profile_picture_url"])
+
+    token := response["token"].(string)
+    assert.NotEmpty(t, token)
+
+    os.Unsetenv("TOKEN_HOUR_LIFESPAN")
 }
 
 func TestRegister(t *testing.T) {
