@@ -72,6 +72,17 @@ type PaginatedUserResponse struct {
 	TotalPages int `json:"total_pages"`
 }
 
+type UserLoginResponse struct {
+	UserID uint `json:"id"`
+	Name string `json:"name"`
+	Email string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+	ProfilePicture string `json:"profile_picture_url"`
+	Major models.Major `json:"majors"`
+	Images []models.UsersImages `json:"images"`
+
+}
+
 type VerifyEmailInput struct {
 	Email string `uri:"email" binding:"required"`
 }
@@ -155,9 +166,9 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := models.LoginCheck(input.Email, input.Password)
+	token, user := models.LoginCheck(input.Email, input.Password)
 
-	if err != nil {
+	if user.ID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "username or password is incorrect."})
 		return
 	}
@@ -175,7 +186,17 @@ func Login(c *gin.Context) {
 		true,
 	)
 
-	c.Status(http.StatusNoContent)
+	response := UserLoginResponse{
+		UserID:            user.ID,
+		Name:              user.Name,
+		Email:             user.Email,
+		PhoneNumber:       user.PhoneNumber,
+		ProfilePicture:    user.ProfilePictureURL,
+		Major:             user.Major,
+		Images:            user.Images,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error" : false, "data" : response, "token": token})
 }
 
 func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
