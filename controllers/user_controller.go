@@ -570,7 +570,16 @@ func GetResults(c *gin.Context) {
 }
 
 func Logout(c *gin.Context) {
-	c.SetCookie("auth_token", "", -1, "/", os.Getenv("CLIENT_DOMAIN"), os.Getenv("GIN_MODE") == "release", true)
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   os.Getenv("CLIENT_DOMAIN"),
+		Expires:  time.Unix(0, 0),
+		Secure:   os.Getenv("GIN_MODE") == "release",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 	c.Status(http.StatusNoContent)
 }
 
