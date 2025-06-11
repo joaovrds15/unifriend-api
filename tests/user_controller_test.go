@@ -743,8 +743,6 @@ func TestLogin(t *testing.T) {
 
     token := response["token"].(string)
     assert.NotEmpty(t, token)
-
-    os.Unsetenv("TOKEN_HOUR_LIFESPAN")
 }
 
 func TestRegister(t *testing.T) {
@@ -1640,4 +1638,39 @@ func TestGetUserResultsInvalidPaginationQuery(t *testing.T) {
 
     assert.Equal(t, http.StatusBadRequest, rec.Code)
     assert.Contains(t, rec.Body.String(), "Invalid pagination Data")
+}
+
+func TestLogout(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
+
+    major := models.Major{
+        Name: "Computer Science",
+    }
+
+    models.DB.Create(&major)
+
+    user := factory.UserFactory()
+    user.Email = "test@mail.com"
+    user.Password = "Right@Password"
+
+    models.DB.Create(&user)
+    req, _ := http.NewRequest("GET", "/api/logout", nil)
+
+	authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(user.ID),
+        Path:  "/",
+    }
+
+    req.AddCookie(authCookie)	
+
+    rec := httptest.NewRecorder()
+
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusNoContent, rec.Code)
+	assert.Contains(t, rec.Header().Get("Set-Cookie"), "auth_token=;")
 }

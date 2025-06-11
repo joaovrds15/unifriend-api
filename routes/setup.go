@@ -66,6 +66,7 @@ func SetupRoutes(r *gin.Engine) {
 	public.POST("/verify/email", controllers.VerifyEmailCode)
 	register.POST("/register", controllers.Register)
 	private.POST("/answer/save", controllers.SaveAnswers)
+	private.GET("/logout", controllers.Logout)
 	public.POST("/login", controllers.Login)
 }
 
