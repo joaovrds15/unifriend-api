@@ -569,6 +569,20 @@ func GetResults(c *gin.Context) {
     c.JSON(200, response)
 }
 
+func Logout(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   os.Getenv("CLIENT_DOMAIN"),
+		Expires:  time.Unix(0, 0),
+		Secure:   os.Getenv("GIN_MODE") == "release",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	c.Status(http.StatusNoContent)
+}
+
 func validateUserAccess(c *gin.Context, requestedUserID uint) error {
 	tokenUserIDClaim, _ := c.Get("user_id")
 	tokenUserIDUint, _ := tokenUserIDClaim.(uint)
