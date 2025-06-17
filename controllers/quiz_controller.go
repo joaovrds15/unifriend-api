@@ -14,8 +14,8 @@ type SaveAnswersInput struct {
 }
 
 type Answer struct {
-	QuestionID       uint `json:"questionID" binding:"required"`
-	SelectedOptionID uint `json:"selectedOptionID" binding:"required"`
+	QuestionID       uint `json:"question_id" binding:"required"`
+	SelectedOptionID uint `json:"option_id" binding:"required"`
 }
 
 type SaveAnswerResponse struct {
@@ -137,5 +137,8 @@ func SaveAnswers(c *gin.Context) {
 		userResponse.SaveUserResponse()
 	}
 
-	c.JSON(http.StatusCreated, SaveAnswerResponse{})
+	c.JSON(http.StatusCreated, gin.H{
+		"error":   false,
+		"message": "answers saved successfully",
+	})
 }
