@@ -94,16 +94,16 @@ func TestSaveAnswers(t *testing.T) {
 		"quiz_id" : 1,
 		"answers" : [
 			  {
-				  "questionID": 1,
-				  "selectedOptionID": 1
+				  "question_id": 1,
+				  "option_id": 1
 			  },
 			  {
-				  "questionID": 2,
-				  "selectedOptionID": 6
+				  "question_id": 2,
+				  "option_id": 6
 			  },
 			  {
-				  "questionID": 3,
-				  "selectedOptionID": 11
+				  "question_id": 3,
+				  "option_id": 11
 			  }
 		  ]
 	  }`)
