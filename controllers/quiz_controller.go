@@ -9,7 +9,6 @@ import (
 
 type SaveAnswersInput struct {
 	QuizID  uint     `json:"quiz_id" binding:"required"`
-	UserID  uint     `json:"user_id" binding:"required"`
 	Answers []models.OptionTable `json:"answers" binding:"required"`
 }
 
