@@ -9,8 +9,7 @@ import (
 
 type SaveAnswersInput struct {
 	QuizID  uint     `json:"quiz_id" binding:"required"`
-	UserID  uint     `json:"user_id" binding:"required"`
-	Answers []Answer `json:"answers" binding:"required"`
+	Answers []models.OptionTable `json:"answers" binding:"required"`
 }
 
 type Answer struct {
@@ -81,7 +80,7 @@ func GetQuestions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, questionsResponse)
+	c.JSON(http.StatusOK, gin.H{ "error" : false, "data" : questionsResponse})
 }
 
 // @Description	SaveAnswers
@@ -96,45 +95,46 @@ func GetQuestions(c *gin.Context) {
 // @Router			/answer/save [post]
 func SaveAnswers(c *gin.Context) {
 	var input SaveAnswersInput
+	userID, exists := c.Get("user_id")
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, err := models.GetUserByID(input.UserID)
+	questionsWithOptions, err := models.GetQuestionsAndOptions(input.Answers)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	if len(input.Answers) != len(questionsWithOptions) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "number of answers does not match number of questions"})
+		return
+	}
+
+	userResponses := []models.UserResponse{}
+
 	for _, answer := range input.Answers {
-		question, err := models.GetQuestionByID(answer.QuestionID)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		option, err := models.GetOptionByID(answer.SelectedOptionID)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if option.QuestionID != question.ID {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "selected option does not belong to this question"})
-			return
-		}
 
 		userResponse := models.UserResponse{
-			UserID:     user.ID,
-			QuestionID: question.ID,
-			OptionID:   option.ID,
+			UserID:     userID.(uint),
+			QuestionID: answer.QuestionID,
+			OptionID:   answer.ID,
 		}
 
-		userResponse.SaveUserResponse()
+		userResponses = append(userResponses, userResponse)
+	}
+
+	if err := models.SaveUserResponses(userResponses); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save user responses"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

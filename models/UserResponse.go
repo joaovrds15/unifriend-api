@@ -16,6 +16,18 @@ func (u *UserResponse) SaveUserResponse() {
 	DB.Save(&u)
 }
 
+func SaveUserResponses(userResponses []UserResponse) error {
+	if len(userResponses) == 0 {
+		return nil
+	}
+
+	if err := DB.Create(&userResponses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func GetUserResponsesByUserID(userId uint) ([]UserResponse, error) {
 	var userResponses []UserResponse
 

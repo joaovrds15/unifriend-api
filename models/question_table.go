@@ -1,5 +1,9 @@
 package models
 
+import (
+	"strings"
+)
+
 type QuestionTable struct {
 	ID      uint   `json:"id" gorm:"primaryKey"`
 	Text    string `json:"text" gorm:"size:255;not null"`
@@ -29,5 +33,28 @@ func GetQuestions() ([]QuestionTable, error) {
 	}
 
 	return questions, nil
+
+}
+
+func GetQuestionsAndOptions(userAnswers []OptionTable) ([]OptionTable, error) {
+
+	var optionsAndQuestions []OptionTable
+
+	var queryConditions strings.Builder
+	var queryArgs []interface{}
+
+	for i, answer := range userAnswers  {
+		if i > 0 {
+			queryConditions.WriteString(" OR ")
+		}
+		queryConditions.WriteString("(question_id = ? AND id = ?)")
+		queryArgs = append(queryArgs, answer.QuestionID, answer.ID)
+	}
+
+	if err := DB.Model(&OptionTable{}).Where(queryConditions.String(), queryArgs...).Find(&optionsAndQuestions).Error; err != nil {
+		return optionsAndQuestions, err
+	}
+
+	return optionsAndQuestions, nil
 
 }
