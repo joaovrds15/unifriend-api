@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"os"
+	"time"
 	"unifriend-api/models"
 	"unifriend-api/utils/token"
 
@@ -20,6 +21,8 @@ func UserFactory() models.User {
 		IsAdmin:           false,
 		MajorID:           MajorFactory().ID,
 		Images:            []models.UsersImages{UsersImagesFactory()},
+		Status: 1,
+		DeletedAt: time.Time{},
 	}
 
 	return user

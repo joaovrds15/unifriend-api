@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"strings"
+	"time"
 	"unifriend-api/utils/token"
 
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +20,9 @@ type User struct {
 	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
 	Major             Major
+	Status			  int  `gorm:"default:1"`
 	Images            []UsersImages `gorm:"foreignKey:UserID"`
+	DeletedAt        time.Time `gorm:"default:NULL"`
 }
 
 func GetUserByID(uid uint) (User, error) {
@@ -80,7 +83,7 @@ func LoginCheck(email string, password string) (string, User) {
 
 	u := User{}
 
-	err = DB.Model(User{}).Where("email = ?", email).Take(&u).Error
+	err = DB.Model(User{}).Where("email = ?", email).Where("status = 1 AND deleted_at IS NULL").Take(&u).Error
 
 	if err != nil {
 		return "", User{}
@@ -100,4 +103,19 @@ func LoginCheck(email string, password string) (string, User) {
 
 	return token, u
 
+}
+
+func (u *User) DeleteUser() error {
+    return DB.Transaction(func(tx *gorm.DB) error {
+        updates := map[string]interface{}{
+            "Status":    0,
+            "DeletedAt": time.Now().Format("2006-01-02 15:04:05"),
+		}
+
+        if err := tx.Model(&u).Updates(updates).Error; err != nil {
+            return err
+        }
+
+        return nil
+    })
 }
