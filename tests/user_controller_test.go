@@ -745,6 +745,37 @@ func TestLogin(t *testing.T) {
     assert.NotEmpty(t, token)
 }
 
+func TestLoginDeletedUser(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
+
+    major := models.Major{
+        Name: "Computer Science",
+    }
+
+    models.DB.Create(&major)
+
+    user := factory.UserFactory()
+	user.Status = 0
+	user.DeletedAt = time.Now()
+    user.Email = "test@mail.com"
+    user.Password = "Right@Password"
+
+    models.DB.Create(&user)
+    payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
+    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
+    req.Header.Set("Content-Type", "application/json")
+
+    rec := httptest.NewRecorder()
+
+    router.ServeHTTP(rec, req)
+
+   	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
+}
+
 func TestRegister(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
@@ -1673,4 +1704,47 @@ func TestLogout(t *testing.T) {
 
     assert.Equal(t, http.StatusNoContent, rec.Code)
 	assert.Contains(t, rec.Header().Get("Set-Cookie"), "auth_token=;")
+}
+
+func TestDeleteUser(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	user.SaveUser()
+
+	mockUploader := &mocks.MockS3Uploader{
+		DeleteImageFunc: func(fileName string) (error) {
+			return nil
+		},
+	}
+
+	testRouter := gin.Default()
+	testRouter.Use(middleware.AuthMiddleware())
+	testRouter.DELETE("/api/users/delete", func(c *gin.Context) {
+		controllers.DeleteUserAccount(c, mockUploader)
+	})
+
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req, _ := http.NewRequest("DELETE", "/api/users/delete", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	req.AddCookie(authCookie)
+	rec := httptest.NewRecorder()
+
+	testRouter.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusNoContent, rec.Code)
+
+	var userAfter models.User
+	models.DB.Find(&userAfter).Where("id = ?", user.ID)
+
+
+	assert.NotNil(t, userAfter.DeletedAt)
+	assert.Equal(t, 0, userAfter.Status)
+
 }

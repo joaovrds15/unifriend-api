@@ -57,7 +57,9 @@ func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers [
 	}
 
 	err := DB.Preload("User").
-		Where("user_id != ?", currentUserID).
+		Joins("JOIN users ON users.id = user_responses.user_id").
+		Where("users.deleted_at IS NULL AND users.status = 1").
+		Where("user_responses.user_id != ?", currentUserID).
 		Where(queryConditions.String(), queryArgs...).
 		Find(&matchingResponses).Error
 

@@ -678,3 +678,36 @@ func isValidEmail(email string) bool {
 
 	return models.EmailDomainExists(emailParts[1])
 }
+
+func DeleteUserAccount(c *gin.Context, uploader services.S3Uploader) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+		return
+	}
+
+	var user models.User
+	if err := models.DB.First(&user, userIDUint).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.ProfilePictureURL != "" {
+		if err := deleteImage(user.ProfilePictureURL, uploader); err != nil {
+			fmt.Printf("Warning: Failed to delete profile picture: %v\n", err)
+		}
+	}
+
+	if err := user.DeleteUser(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user account"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
