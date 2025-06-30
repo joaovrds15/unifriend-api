@@ -67,6 +67,46 @@ func TestGetQuestions(t *testing.T) {
 	assert.Equal(t, true, result.Valid())
 }
 
+func TestGetQuestionsWhenUserAlreadyTakenQuiz(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	quiz := factory.QuizTableFactory()
+	user := factory.UserFactory()
+	models.DB.Create(&quiz)
+	models.DB.Create(&user)
+
+	question := factory.QuestionTableFactory()
+
+	options := factory.OptionTableFactories(2)
+	models.DB.Create(&options)
+	models.DB.Model(&question).Association("Options").Append(&options)
+	question.Options = options
+
+	userResponse := factory.UserResponseFactory()
+	userResponse.OptionID = 1
+	userResponse.QuestionID = question.ID
+	userResponse.UserID = user.ID
+
+	models.DB.Create(&userResponse)
+
+	req, _ := http.NewRequest("GET", "/api/questions", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+}
+
 func TestSaveAnswers(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
