@@ -38,6 +38,19 @@ func GetUserResponsesByUserID(userId uint) ([]UserResponse, error) {
 	return userResponses, nil
 }
 
+func HasUserAlreadyTakenQuiz(userID uint) (bool, error) {
+	var count int64
+	err := DB.Model(&UserResponse{}).
+		Where("user_responses.user_id = ?", userID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers []UserResponse) ([]UserResponse, error) {
 	var matchingResponses []UserResponse
 

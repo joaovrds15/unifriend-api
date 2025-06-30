@@ -41,6 +41,29 @@ type QuestionResponseFormat struct {
 // @Failure		500	"Something went wrong"
 // @Router			/questions [get]
 func GetQuestions(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+		return
+	}
+
+	hasTaken, err := models.HasUserAlreadyTakenQuiz(userIDUint)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if hasTaken {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You have already taken the quiz"})
+		return
+	}
+
 	questions, err := models.GetQuestions()
 
 	if err != nil {
