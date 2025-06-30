@@ -3,7 +3,7 @@ package tests
 import (
 	"os"
 	"testing"
-	"unifriend-api/controllers"
+	"unifriend-api/handlers"
 	"unifriend-api/models"
 	"unifriend-api/routes"
 
@@ -32,6 +32,6 @@ func SetupRoutes() {
 func SetupRouterWithoutMiddleware() *gin.Engine {
 	r := gin.Default()
 
-	r.POST("/api/register", controllers.Register)
+	r.POST("/api/register", handlers.Register)
 	return r
 }

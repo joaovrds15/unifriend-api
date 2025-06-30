@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	"errors"
@@ -45,25 +45,12 @@ type UserResponse struct {
 	Data []User `json:"data"`
 }
 
-type RegisterInput struct {
-	Password          string   `json:"password" binding:"required"`
-	RePassword        string   `json:"re_password" binding:"required"`
-	Email             string   `json:"email" binding:"required"`
-	Name              string   `json:"name" binding:"required"`
-	PhoneNumber       string   `json:"phone_number" binding:"required"`
-	MajorID           uint     `json:"major_id" binding:"required"`
-}
-
-type LoginInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
 type GetResultsInput struct {
 	UserId uint `uri:"user_id" binding:"required"`
 	Page int `form:"page"`
 	Limit int `form:"limit"`
 }
+
 type PaginatedUserResponse struct {
 	Data []User `json:"data"`
 	Page int `json:"page"`
@@ -85,118 +72,6 @@ type UserLoginResponse struct {
 
 type VerifyEmailInput struct {
 	Email string `uri:"email" binding:"required"`
-}
-
-type RegisterResponse struct {
-	Message string `json:"message" example:"User created successfully"`
-}
-
-type LoginResponse struct {
-	Token string `json:"token" example:"a34ojfds0cidsaokdjcdojfi"`
-}
-
-// @Description	Register
-// @Accept			json
-// @Tags			auth
-// @Produce		json
-// @Param			input	body		RegisterInput	true	"register input"
-// @Success		201		{object}	controllers.RegisterResponse
-// @Failure		400		"Invalid Data"
-// @Router			/register [post]
-func Register(c *gin.Context) {
-
-	var input RegisterInput
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !isValidPassword(input.Password) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 8 characters long, contain at least one uppercase letter, and one special symbol"})
-		return
-	}
-
-	if models.UsernameAlreadyUsed(input.Email) || models.PhoneNumberAlreadyUsed(input.PhoneNumber) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "something went wrong"})
-		return
-	}
-
-	u := models.User{}
-
-	if input.Password != input.RePassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password and re_password are not the same"})
-		return
-	}
-
-	imagesUrl := []models.UsersImages{}
-
-	u.Password = input.Password
-	u.Email = input.Email
-	u.Name = input.Name
-	u.MajorID = input.MajorID
-	u.PhoneNumber = input.PhoneNumber
-	u.Images = imagesUrl
-
-	_, err := u.SaveUser()
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, RegisterResponse{Message: "User created successfully"})
-}
-
-// @Description	Login
-// @Accept			json
-// @Tags			auth
-// @Produce		json
-// @Param			input	body		LoginInput	true	"login input"
-// @Success		200		{object}	controllers.LoginResponse
-// @Failure		400		"Invalid Data"
-// @Failure		401		"email or password is incorrect.""
-// @Router			/login [post]
-func Login(c *gin.Context) {
-
-	var input LoginInput
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	token, user := models.LoginCheck(input.Email, input.Password)
-
-	if user.ID == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "username or password is incorrect."})
-		return
-	}
-
-	tokenLifespanStr := os.Getenv("TOKEN_HOUR_LIFESPAN")
-	tokenLifespan, _ := strconv.Atoi(tokenLifespanStr)
-
-	c.SetCookie(
-		"auth_token",
-		token,
-		tokenLifespan*3600,
-		"/",
-		os.Getenv("CLIENT_DOMAIN"),
-		os.Getenv("GIN_MODE") == "release",
-		true,
-	)
-
-	response := UserLoginResponse{
-		UserID:            user.ID,
-		Name:              user.Name,
-		Email:             user.Email,
-		PhoneNumber:       user.PhoneNumber,
-		ProfilePicture:    user.ProfilePictureURL,
-		Major:             user.Major,
-		Images:            user.Images,
-	}
-
-	c.JSON(http.StatusOK, gin.H{"error" : false, "data" : response, "token": token})
 }
 
 func UploadImage(c *gin.Context, uploader services.S3Uploader) (string, error) {
@@ -567,20 +442,6 @@ func GetResults(c *gin.Context) {
     }
 
     c.JSON(200, response)
-}
-
-func Logout(c *gin.Context) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "auth_token",
-		Value:    "",
-		Path:     "/",
-		Domain:   os.Getenv("CLIENT_DOMAIN"),
-		Expires:  time.Unix(0, 0),
-		Secure:   os.Getenv("GIN_MODE") == "release",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-	c.Status(http.StatusNoContent)
 }
 
 func validateUserAccess(c *gin.Context, requestedUserID uint) error {
