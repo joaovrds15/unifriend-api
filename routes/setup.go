@@ -2,7 +2,7 @@ package routes
 
 import (
 	"log"
-	"unifriend-api/controllers"
+	"unifriend-api/handlers"
 	"unifriend-api/middleware"
 	"unifriend-api/services"
 
@@ -33,41 +33,41 @@ func SetupRoutes(r *gin.Engine) {
 		}
 
 		users.POST("/profile-picture", func(c *gin.Context) {
-			controllers.UpdateUserProfilePicture(c, s3Client)
+			handlers.UpdateUserProfilePicture(c, s3Client)
 		})
 
 		users.PUT("/profile-picture", func(c *gin.Context) {
-			controllers.UpdateUserProfilePicture(c, s3Client)
+			handlers.UpdateUserProfilePicture(c, s3Client)
 		})
 
 		users.DELETE("/profile-picture", func(c *gin.Context) {
-			controllers.DeleteUserProfilePicture(c, s3Client)
+			handlers.DeleteUserProfilePicture(c, s3Client)
 		})
 
 		users.POST("/images", func(c *gin.Context) {
-			controllers.AddUserImage(c, s3Client)
+			handlers.AddUserImage(c, s3Client)
 		})
 
 		users.DELETE("/images/:image_id", func(c *gin.Context) {
-			controllers.DeleteUserImage(c, s3Client)
+			handlers.DeleteUserImage(c, s3Client)
 		})
 
 		public.GET("/verify/email/:email", func(c *gin.Context) {
-			controllers.VerifyEmail(c, sesClient)
+			handlers.VerifyEmail(c, sesClient)
 		})
 	}
 
-	public.GET("/verify/code/:email", controllers.GetVerificationCodeExpiration)
-	private.GET("/questions", controllers.GetQuestions)
-	private.GET("/get-results/user/:user_id", controllers.GetResults)
+	public.GET("/verify/code/:email", handlers.GetVerificationCodeExpiration)
+	private.GET("/questions", handlers.GetQuestions)
+	private.GET("/get-results/user/:user_id", handlers.GetResults)
 	public.GET("/health", Ping)
-	public.GET("/majors", controllers.GetMajors)
+	public.GET("/majors", handlers.GetMajors)
 	public.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
-	public.POST("/verify/email", controllers.VerifyEmailCode)
-	register.POST("/register", controllers.Register)
-	private.POST("/answer/save", controllers.SaveAnswers)
-	private.GET("/logout", controllers.Logout)
-	public.POST("/login", controllers.Login)
+	public.POST("/verify/email", handlers.VerifyEmailCode)
+	register.POST("/register", handlers.Register)
+	private.POST("/answer/save", handlers.SaveAnswers)
+	private.GET("/logout", handlers.Logout)
+	public.POST("/login", handlers.Login)
 }
 
 // PingExample godoc

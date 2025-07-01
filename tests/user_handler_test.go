@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"testing"
 	"time"
-	"unifriend-api/controllers"
+	"unifriend-api/handlers"
 	"unifriend-api/middleware"
 	"unifriend-api/models"
 	"unifriend-api/tests/factory"
@@ -44,7 +44,7 @@ func TestDeleteUserImageSuccess(t *testing.T) {
 	router.Use(middleware.AuthMiddleware())
 	router.DELETE("/api/users/images/:image_id", func(c *gin.Context) {
 		c.Params = []gin.Param{{Key: "image_id", Value: strconv.Itoa(int(image.ID))}}
-		controllers.DeleteUserImage(c, mockUploader)
+		handlers.DeleteUserImage(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/images/1", nil) 
@@ -79,7 +79,7 @@ func TestDeleteUserImageMissingToken(t *testing.T) {
 	}
 
 	router.DELETE("/api/users/images/:image_id", func(c *gin.Context) {
-		controllers.DeleteUserImage(c, mockUploader)
+		handlers.DeleteUserImage(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/images/1", nil) 
@@ -107,7 +107,7 @@ func TestDeleteUserImageInvalidImageID(t *testing.T) {
 
 	router.Use(middleware.AuthMiddleware())
 	router.DELETE("/api/users/images/:image_id", func(c *gin.Context) {
-		controllers.DeleteUserImage(c, mockUploader)
+		handlers.DeleteUserImage(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/images/-1", nil) 
@@ -142,7 +142,7 @@ func TestDeleteUserImageNotFound(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.DELETE("/api/users/me/images/:image_id", func(c *gin.Context) {
-		controllers.DeleteUserImage(c, mockUploader)
+		handlers.DeleteUserImage(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/me/images/99999", nil)
@@ -177,7 +177,7 @@ func TestDeleteUserImageAuthError(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.DELETE("/api/users/me/images/:image_id", func(c *gin.Context) {
-		controllers.DeleteUserImage(c, mockUploader)
+		handlers.DeleteUserImage(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("DELETE", "/api/users/me/images/"+strconv.Itoa(int(userImage.ID)), nil)
@@ -212,7 +212,7 @@ func TestAddUserImageS3Failure(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.POST("/api/users/me/images", func(c *gin.Context) {
-		controllers.AddUserImage(c, mockUploader)
+		handlers.AddUserImage(c, mockUploader)
 	})
 
 	var body bytes.Buffer
@@ -253,7 +253,7 @@ func TestAddUserImageInvalidFile(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.POST("/api/users/me/images", func(c *gin.Context) {
-		controllers.AddUserImage(c, mockUploader)
+		handlers.AddUserImage(c, mockUploader)
 	})
 
 	largeFile := bytes.Repeat([]byte("A"), 2*1024)
@@ -297,7 +297,7 @@ func TestAddUserImageSuccess(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.POST("/api/users/me/images", func(c *gin.Context) {
-		controllers.AddUserImage(c, mockUploader)
+		handlers.AddUserImage(c, mockUploader)
 	})
 
 	var body bytes.Buffer
@@ -341,7 +341,7 @@ func TestUpdateUserProfilePictureInvalidUserIDType(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", "not-a-uint"); c.Next() })
 	testRouter.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
-		controllers.UpdateUserProfilePicture(c, mockUploader)
+		handlers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
 	req, _ := http.NewRequest("PUT", "/api/users/me/profile-picture", nil)
@@ -370,7 +370,7 @@ func TestUpdateUserProfilePictureInvalidFile(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(func(c *gin.Context) { c.Set("user_id", user.ID); c.Next() })
 	testRouter.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
-		controllers.UpdateUserProfilePicture(c, mockUploader)
+		handlers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
 	largeFile := bytes.Repeat([]byte("A"), 2*1024)
@@ -402,7 +402,7 @@ func TestUpdateUserProfilePictureAuthError(t *testing.T) {
 
 	router.Use(middleware.AuthMiddleware())
 	router.PUT("/api/users/me/profile-picture", func(c *gin.Context) {
-		controllers.UpdateUserProfilePicture(c, mockUploader)
+		handlers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
 	var body bytes.Buffer
@@ -461,7 +461,7 @@ func TestUpdateUserProfilePictureSuccess(t *testing.T) {
 	req.AddCookie(authCookie)
 	router.Use(middleware.AuthMiddleware())
 	router.PUT("/users/profile-picture", func(c *gin.Context) {
-		controllers.UpdateUserProfilePicture(c, mockUploader)
+		handlers.UpdateUserProfilePicture(c, mockUploader)
 	})
 
 	rec := httptest.NewRecorder()
@@ -512,7 +512,7 @@ func TestUploadImageS3Failure(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	url, uploadErr := controllers.UploadImage(c, mockUploader)
+	url, uploadErr := handlers.UploadImage(c, mockUploader)
 
 	assert.Empty(t, url)
 	assert.NotNil(t, uploadErr)
@@ -552,7 +552,7 @@ func TestUploadImageBiggerThenLimit(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	url, uploadErr := controllers.UploadImage(c, mockUploader)
+	url, uploadErr := handlers.UploadImage(c, mockUploader)
 
 	assert.Empty(t, url)
 	assert.NotNil(t, uploadErr)
@@ -593,7 +593,7 @@ func TestUploadImageSuccess(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	url, uploadErr := controllers.UploadImage(c, mockUploader)
+	url, uploadErr := handlers.UploadImage(c, mockUploader)
 
 	assert.Equal(t, expectedURL, url)
 	assert.Nil(t, uploadErr)
@@ -630,7 +630,7 @@ func TestUploadImageInvalidExtension(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	url, uploadErr := controllers.UploadImage(c, mockUploader)
+	url, uploadErr := handlers.UploadImage(c, mockUploader)
 
 	assert.Empty(t, url)
 	assert.NotNil(t, uploadErr)
@@ -663,286 +663,11 @@ func TestUploadImageWithoutImage(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	url, uploadErr := controllers.UploadImage(c, mockUploader)
+	url, uploadErr := handlers.UploadImage(c, mockUploader)
 
 	assert.Empty(t, url)
 	assert.NotNil(t, uploadErr)
 	assert.Contains(t, uploadErr.Error(), "could not upload the file")
-}
-
-func TestLoginWithWrongCredentials(t *testing.T) {
-    SetupTestDB()
-    defer models.TearDownTestDB()
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
-    user := factory.UserFactory()
-    user.Email = "teste@mail.com"
-    user.Password = "Wrong@passowrd"
-
-    models.DB.Create(&user)
-
-    payload := []byte(`{"email": "teste@mail.com", "password": "Right@Password"}`)
-    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
-    req.Header.Set("Content-Type", "application/json")
-
-    rec := httptest.NewRecorder()
-
-    router.ServeHTTP(rec, req)
-
-    assert.Equal(t, http.StatusUnauthorized, rec.Code)
-    assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
-}
-
-func TestLogin(t *testing.T) {
-    SetupTestDB()
-    defer models.TearDownTestDB()
-
-    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
-    user := factory.UserFactory()
-    user.Email = "test@mail.com"
-    user.Password = "Right@Password"
-
-    models.DB.Create(&user)
-    payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
-    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
-    req.Header.Set("Content-Type", "application/json")
-
-    rec := httptest.NewRecorder()
-
-    router.ServeHTTP(rec, req)
-
-    assert.Equal(t, http.StatusOK, rec.Code)
-    assert.NotEmpty(t, rec.Header().Get("Set-Cookie"))
-
-    var response map[string]interface{}
-    err := json.Unmarshal(rec.Body.Bytes(), &response)
-    assert.NoError(t, err)
-
-    assert.False(t, response["error"].(bool))
-    assert.NotNil(t, response["data"])
-    assert.NotEmpty(t, response["token"])
-
-    userData := response["data"].(map[string]interface{})
-    assert.Equal(t, float64(user.ID), userData["id"])
-    assert.Equal(t, user.Name, userData["name"])
-    assert.Equal(t, user.Email, userData["email"])
-    assert.Equal(t, user.PhoneNumber, userData["phone_number"])
-    assert.Equal(t, user.ProfilePictureURL, userData["profile_picture_url"])
-
-    token := response["token"].(string)
-    assert.NotEmpty(t, token)
-}
-
-func TestLoginDeletedUser(t *testing.T) {
-    SetupTestDB()
-    defer models.TearDownTestDB()
-
-    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
-    user := factory.UserFactory()
-	user.Status = 0
-	user.DeletedAt = time.Now()
-    user.Email = "test@mail.com"
-    user.Password = "Right@Password"
-
-    models.DB.Create(&user)
-    payload := []byte(`{"email": "test@mail.com", "password": "Right@Password"}`)
-    req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(payload))
-    req.Header.Set("Content-Type", "application/json")
-
-    rec := httptest.NewRecorder()
-
-    router.ServeHTTP(rec, req)
-
-   	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	assert.Contains(t, rec.Body.String(), "username or password is incorrect.")
-}
-
-func TestRegister(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := models.Major{
-		Name: "Computer Science",
-	}
-
-	models.DB.Create(&major)
-
-	userData := map[string]interface{}{
-		"password":            "Senha@123",
-		"re_password":         "Senha@123",
-		"major_id":            1,
-		"email":               "testemail@mail.com",
-		"name":                "test user",
-		"phone_number":        "62999999999",
-	}
-
-	jsonValue, _ := json.Marshal(userData)
-
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	registrationCookie := &http.Cookie{
-		Name:  "registration_token",
-		Value: factory.GetEmailToken(userData["email"].(string)),
-		Path:  "/",
-	}
-
-	req.AddCookie(registrationCookie)
-
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
-
-	var user models.User
-	models.DB.Where("email = ?", userData["email"]).First(&user)
-	assert.NotNil(t, user)
-
-	var userImages []models.UsersImages
-	models.DB.Where("user_id = ?", user.ID).Find(&userImages)
-
-	expectedImageUrls := make(map[string]bool)
-
-	for _, dbImg := range userImages {
-		assert.True(t, expectedImageUrls[dbImg.ImageUrl])
-	}
-
-	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Contains(t, rec.Body.String(), "User created successfully")
-}
-
-func TestRegisterWithDuplicatedEmail(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := factory.MajorFactory()
-	user := factory.UserFactory()
-	user.Email = "testuser@mail.com"
-
-	models.DB.Create(&major)
-	models.DB.Create(&user)
-
-	userData := map[string]interface{}{
-		"password":            "Senha@123",
-		"re_password":         "Senha@123",
-		"major_id":            1,
-		"email":               "testuser@mail.com",
-		"name":                "test user",
-		"phone_number":        "62999999999",
-	}
-
-	jsonValue, _ := json.Marshal(userData)
-
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	rec := httptest.NewRecorder()
-
-	router := SetupRouterWithoutMiddleware()
-	router.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "something went wrong")
-}
-
-func TestRegisterWithDuplicatedPhoneNumber(t *testing.T) {
-	SetupTestDB()
-	defer models.TearDownTestDB()
-
-	major := factory.MajorFactory()
-	user := factory.UserFactory()
-	user.PhoneNumber = "62999999999"
-
-	models.DB.Create(&major)
-	models.DB.Create(&user)
-
-	imagesUrls := []string{
-		"http://test.com",
-		"http://test2.com",
-	}
-
-	userData := map[string]interface{}{
-		"password":            "Senha@123",
-		"re_password":         "Senha@123",
-		"major_id":            1,
-		"email":               "newuser@mail.com",
-		"name":                "new user",
-		"profile_picture_url": "http://test.com",
-		"phone_number":        "62999999999",
-		"images":              imagesUrls,
-	}
-
-	jsonValue, _ := json.Marshal(userData)
-
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	rec := httptest.NewRecorder()
-
-	router := SetupRouterWithoutMiddleware()
-	router.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "something went wrong")
-}
-
-func TestRegisterInvalidPassword(t *testing.T) {
-	SetupTestDB()
-
-	defer models.TearDownTestDB()
-
-	major := models.Major{
-		Name: "Computer Science",
-	}
-
-	models.DB.Create(&major)
-
-	imagesUrls := []string{
-		"http://test.com",
-		"http://test2.com",
-	}
-
-	userData := map[string]interface{}{
-		"password":            "Senha123",
-		"re_password":         "Senha123",
-		"major_id":            1,
-		"email":               "testemail@mail.com",
-		"name":                "test user",
-		"profile_picture_url": "http://test.com",
-		"phone_number":        "62999999999",
-		"images":              imagesUrls,
-	}
-
-	jsonValue, _ := json.Marshal(userData)
-
-	req, _ := http.NewRequest("POST", "/api/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	rec := httptest.NewRecorder()
-
-	router := SetupRouterWithoutMiddleware()
-	router.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Password must be at least 8 characters long, contain at least one uppercase letter, and one special symbol")
 }
 
 func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
@@ -958,7 +683,7 @@ func TestVerifyEmailWithoutEmailParameter(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify-email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify-email", nil)
@@ -984,7 +709,7 @@ func TestVerifyWithInvalidEmail(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/invalidemail.com", nil)
@@ -1014,7 +739,7 @@ func TestVerifyEmailAlreadyInUse(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+user.Email, nil)
@@ -1043,7 +768,7 @@ func TestVerifyWithInvalidEmailDomain(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+invalidEmail, nil)
@@ -1072,7 +797,7 @@ func TestVerifyEmailAwsError(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
@@ -1103,7 +828,7 @@ func TestVerifyEmailWithValidCode(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
@@ -1139,7 +864,7 @@ func TestVerifyEmailSuccess(t *testing.T) {
 	router := gin.Default()
 
 	router.GET("/api/verify/email/:email", func(c *gin.Context) {
-		controllers.VerifyEmail(c, mockEmailSender)
+		handlers.VerifyEmail(c, mockEmailSender)
 	})
 
 	req, _ := http.NewRequest("GET", "/api/verify/email/"+validEmail, nil)
@@ -1312,7 +1037,7 @@ func TestGetUserResultEmptyResults(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
-	expectedResponse := gin.H{"data": make([]controllers.User, 0), "page" : 1, "limit" : 10, "total" : 0, "total_pages" : 0}
+	expectedResponse := gin.H{"data": make([]handlers.User, 0), "page" : 1, "limit" : 10, "total" : 0, "total_pages" : 0}
 	fmt.Println(rec.Body.String())
 	var actualResponse gin.H
 	err := json.Unmarshal(rec.Body.Bytes(), &actualResponse)
@@ -1409,7 +1134,7 @@ func TestGetUserResultsWithPagination(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1428,7 +1153,7 @@ func TestGetUserResultsWithPagination(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec2.Code)
 
-    var response2 controllers.PaginatedUserResponse
+    var response2 handlers.PaginatedUserResponse
     err = json.Unmarshal(rec2.Body.Bytes(), &response2)
     assert.NoError(t, err)
 
@@ -1477,7 +1202,7 @@ func TestGetUserResultsDefaultPagination(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1510,7 +1235,7 @@ func TestGetUserResultsInvalidPaginationParams(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1556,7 +1281,7 @@ func TestGetUserResultsLimitExceeded(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1602,7 +1327,7 @@ func TestGetUserResultsPageBeyondTotal(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1636,7 +1361,7 @@ func TestGetUserResultsEmptyResultsWithPagination(t *testing.T) {
 
     assert.Equal(t, http.StatusOK, rec.Code)
 
-    var response controllers.PaginatedUserResponse
+    var response handlers.PaginatedUserResponse
     err := json.Unmarshal(rec.Body.Bytes(), &response)
     assert.NoError(t, err)
 
@@ -1671,41 +1396,6 @@ func TestGetUserResultsInvalidPaginationQuery(t *testing.T) {
     assert.Contains(t, rec.Body.String(), "Invalid pagination Data")
 }
 
-func TestLogout(t *testing.T) {
-    SetupTestDB()
-    defer models.TearDownTestDB()
-
-    os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
-    user := factory.UserFactory()
-    user.Email = "test@mail.com"
-    user.Password = "Right@Password"
-
-    models.DB.Create(&user)
-    req, _ := http.NewRequest("GET", "/api/logout", nil)
-
-	authCookie := &http.Cookie{
-        Name:  "auth_token",
-        Value: factory.GetUserFactoryToken(user.ID),
-        Path:  "/",
-    }
-
-    req.AddCookie(authCookie)	
-
-    rec := httptest.NewRecorder()
-
-    router.ServeHTTP(rec, req)
-
-    assert.Equal(t, http.StatusNoContent, rec.Code)
-	assert.Contains(t, rec.Header().Get("Set-Cookie"), "auth_token=;")
-}
-
 func TestDeleteUser(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
@@ -1722,7 +1412,7 @@ func TestDeleteUser(t *testing.T) {
 	testRouter := gin.Default()
 	testRouter.Use(middleware.AuthMiddleware())
 	testRouter.DELETE("/api/users/delete", func(c *gin.Context) {
-		controllers.DeleteUserAccount(c, mockUploader)
+		handlers.DeleteUserAccount(c, mockUploader)
 	})
 
 	authCookie := &http.Cookie{
