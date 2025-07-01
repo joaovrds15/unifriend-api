@@ -75,7 +75,7 @@ func ConnectDataBase() {
 		Logger: newLogger,
 	})
 
-	fmt.Println(DbHost)
+	log.Println("Database Host:", DbHost)
 
 	if err != nil {
 		fmt.Println("Cannot connect to database ", Dbdriver)
