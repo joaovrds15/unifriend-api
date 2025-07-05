@@ -1,6 +1,8 @@
 package models
 
-import "strings"
+import (
+	"strings"
+)
 
 type UserResponse struct {
 	ID         uint `json:"id" gorm:"primaryKey"`
@@ -10,8 +12,8 @@ type UserResponse struct {
 	Option     OptionTable
 	UserID     uint
 	User       User
-	HasConnection               bool `gorm:"-"`
-    HasPendingConnectionRequest bool `gorm:"-"`
+	HasConnection               bool `gorm:"->;-:migration;column:has_connection"`
+    HasPendingConnectionRequest bool `gorm:"->;-:migration;column:has_pending_connection_request"`
 }
 
 func (u *UserResponse) SaveUserResponse() {

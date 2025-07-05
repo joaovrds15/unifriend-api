@@ -469,8 +469,8 @@ func buildUserScores(matchingResponses []models.UserResponse) []User {
 				Name:              matchingResponse.User.Name,
 				ProfilePictureURL: matchingResponse.User.ProfilePictureURL,
 				Score:             1,
-				HasPendingConnectionRequest: user.HasPendingConnectionRequest,
-				HasConnection: user.HasConnection,
+				HasPendingConnectionRequest: matchingResponse.HasPendingConnectionRequest,
+				HasConnection: matchingResponse.HasConnection,
 			}
 		} else {
 			user.Score++

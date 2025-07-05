@@ -1092,6 +1092,78 @@ func TestGetUserResultWithMatches(t *testing.T) {
 	assert.Equal(t, otherUser.Name, firstUser["name"])
 	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
 	assert.Equal(t, float64(1), firstUser["score"])
+	assert.Equal(t, false, firstUser["has_pending_connection_request"])
+	assert.Equal(t, false, firstUser["has_connection"])
+}
+
+func TestGetUserResultWithMatchesUserHasPendingConnectionRequests(t *testing.T) {
+	SetupTestDB()
+	defer models.TearDownTestDB()
+
+	user := factory.UserFactory()
+	models.DB.Create(&user)
+
+	otherUser := factory.UserFactory()
+	models.DB.Create(&otherUser)
+
+	connectionRequest := factory.ConnectionRequestFactory()
+	connectionRequest.RequestingUserID = otherUser.ID
+	connectionRequest.RequestedUserID = user.ID
+	models.DB.Create(&connectionRequest)
+
+	quiz := factory.QuizTableFactory()
+	models.DB.Create(&quiz)
+
+	question := factory.QuestionTableFactory()
+	question.Quiz_id = quiz.ID
+	models.DB.Create(&question)
+
+	option := factory.OptionTableFactory()
+	option.QuestionID = question.ID
+	models.DB.Create(&option)
+
+	userResponse := factory.UserResponseFactory()
+	userResponse.UserID = user.ID
+	userResponse.QuestionID = question.ID
+	userResponse.OptionID = option.ID
+	models.DB.Create(&userResponse)
+
+	matchingResponse := factory.UserResponseFactory()
+	matchingResponse.UserID = otherUser.ID
+	matchingResponse.QuestionID = question.ID
+	matchingResponse.OptionID = option.ID
+	models.DB.Create(&matchingResponse)
+
+	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
+	req.Header.Set("Content-Type", "application/json")
+	authCookie := &http.Cookie{
+		Name:  "auth_token",
+		Value: factory.GetUserFactoryToken(user.ID),
+		Path:  "/",
+	}
+
+	req.AddCookie(authCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var response gin.H
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	dataInterface, ok := response["data"].([]interface{})
+	assert.True(t, ok, "data should be a slice")
+	assert.NotEmpty(t, dataInterface)
+
+	firstUser := dataInterface[0].(map[string]interface{})
+	fmt.Println(firstUser)
+	assert.Equal(t, float64(otherUser.ID), firstUser["user_id"])
+	assert.Equal(t, otherUser.Name, firstUser["name"])
+	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
+	assert.Equal(t, float64(1), firstUser["score"])
+	assert.Equal(t, true, firstUser["has_pending_connection_request"])
+	assert.Equal(t, false, firstUser["has_connection"])
 }
 
 func TestGetUserResultsWithPagination(t *testing.T) {
