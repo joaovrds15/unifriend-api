@@ -39,6 +39,8 @@ type User struct {
 	ProfilePictureURL string `json:"profile_picture_url"`
 	Name              string `json:"name"`
 	Score             int    `json:"score"`
+	HasPendingConnectionRequest bool `json:"has_pending_connection_request"`
+	HasConnection bool `json:"has_connection"`
 }
 
 type UserResponse struct {
@@ -467,6 +469,8 @@ func buildUserScores(matchingResponses []models.UserResponse) []User {
 				Name:              matchingResponse.User.Name,
 				ProfilePictureURL: matchingResponse.User.ProfilePictureURL,
 				Score:             1,
+				HasPendingConnectionRequest: user.HasPendingConnectionRequest,
+				HasConnection: user.HasConnection,
 			}
 		} else {
 			user.Score++

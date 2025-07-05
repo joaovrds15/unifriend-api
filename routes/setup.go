@@ -20,6 +20,7 @@ func SetupRoutes(r *gin.Engine) {
 	register.Use(middleware.AuthRegistrationMiddleware())
 	
 	users := private.Group("/users")
+	connections := private.Group("/connections")
 
 	if gin.Mode() != gin.TestMode {
 		s3Client, err := services.NewS3Client()
@@ -56,7 +57,10 @@ func SetupRoutes(r *gin.Engine) {
 			handlers.VerifyEmail(c, sesClient)
 		})
 	}
-
+	connections.POST("/request/user/:user_id", handlers.CreateConnectionRequest)
+	connections.GET("/requests", handlers.GetConnectionRequests)
+	connections.PUT("/requests/:request_id/accept", handlers.AcceptConnectionRequest)
+	connections.PUT("/requests/:request_id/reject", handlers.RejectConnectionRequest)
 	public.GET("/verify/code/:email", handlers.GetVerificationCodeExpiration)
 	private.GET("/questions", handlers.GetQuestions)
 	private.GET("/get-results/user/:user_id", handlers.GetResults)
