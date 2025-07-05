@@ -10,6 +10,8 @@ type UserResponse struct {
 	Option     OptionTable
 	UserID     uint
 	User       User
+	HasConnection               bool `gorm:"-"`
+    HasPendingConnectionRequest bool `gorm:"-"`
 }
 
 func (u *UserResponse) SaveUserResponse() {
@@ -52,33 +54,46 @@ func HasUserAlreadyTakenQuiz(userID uint) (bool, error) {
 }
 
 func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers []UserResponse) ([]UserResponse, error) {
-	var matchingResponses []UserResponse
+    var matchingResponses []UserResponse
 
-	if len(currentUserAnswers) == 0 {
-		return matchingResponses, nil
-	}
+    if len(currentUserAnswers) == 0 {
+        return matchingResponses, nil
+    }
 
-	var queryConditions strings.Builder
-	var queryArgs []interface{}
+    var queryConditions strings.Builder
+    var queryArgs []interface{}
 
-	for i, answer := range currentUserAnswers {
-		if i > 0 {
-			queryConditions.WriteString(" OR ")
-		}
-		queryConditions.WriteString("(question_id = ? AND option_id = ?)")
-		queryArgs = append(queryArgs, answer.QuestionID, answer.OptionID)
-	}
+    for i, answer := range currentUserAnswers {
+        if i > 0 {
+            queryConditions.WriteString(" OR ")
+        }
+        queryConditions.WriteString("(user_responses.question_id = ? AND user_responses.option_id = ?)")
+        queryArgs = append(queryArgs, answer.QuestionID, answer.OptionID)
+    }
 
-	err := DB.Preload("User").
-		Joins("JOIN users ON users.id = user_responses.user_id").
-		Where("users.deleted_at IS NULL AND users.status = 1").
-		Where("user_responses.user_id != ?", currentUserID).
-		Where(queryConditions.String(), queryArgs...).
-		Find(&matchingResponses).Error
+    connectionSubquery := `
+        LEFT JOIN connection_requests cr ON 
+        (cr.requesting_user_id = ? AND cr.requested_user_id= user_responses.user_id) OR 
+        (cr.requesting_user_id = user_responses.user_id AND cr.requested_user_id = ?)`
 
-	if err != nil {
-		return nil, err
-	}
+    selectClause := `
+        user_responses.*,
+        CASE WHEN cr.id IS NOT NULL AND cr.status = 1 THEN TRUE ELSE FALSE END as has_connection,
+        CASE WHEN cr.id IS NOT NULL AND cr.status = 2 THEN TRUE ELSE FALSE END as has_pending_connection_request`
 
-	return matchingResponses, nil
+    err := DB.Table("user_responses").
+        Select(selectClause).
+        Joins("JOIN users ON users.id = user_responses.user_id").
+        Joins(connectionSubquery, currentUserID, currentUserID).
+        Preload("User").
+        Where("users.deleted_at IS NULL AND users.status = 1").
+        Where("user_responses.user_id != ?", currentUserID).
+        Where(queryConditions.String(), queryArgs...).
+        Find(&matchingResponses).Error
+
+    if err != nil {
+        return nil, err
+    }
+
+    return matchingResponses, nil
 }
