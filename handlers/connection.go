@@ -171,7 +171,7 @@ func RejectConnectionRequest(c *gin.Context) {
 	connectionRequestId := c.Param("request_id")
 	connectionRequestIdConverted, err := strconv.ParseUint(connectionRequestId, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID format"})
 		return
 	}
 
