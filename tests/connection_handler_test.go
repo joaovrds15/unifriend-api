@@ -225,7 +225,7 @@ func TestRejectConnectionRequest(t *testing.T) {
 
     var response gin.H
     json.Unmarshal(rec.Body.Bytes(), &response)
-    assert.Equal(t, "Connection request accepted", response["message"])
+    assert.Equal(t, "Connection request rejected", response["message"])
 
     var updatedRequest models.ConnectionRequest
     models.DB.First(&updatedRequest, connectionRequest.ID)
