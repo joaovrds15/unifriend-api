@@ -1157,7 +1157,6 @@ func TestGetUserResultWithMatchesUserHasPendingConnectionRequests(t *testing.T) 
 	assert.NotEmpty(t, dataInterface)
 
 	firstUser := dataInterface[0].(map[string]interface{})
-	fmt.Println(firstUser)
 	assert.Equal(t, float64(otherUser.ID), firstUser["user_id"])
 	assert.Equal(t, otherUser.Name, firstUser["name"])
 	assert.Equal(t, otherUser.ProfilePictureURL, firstUser["profile_picture_url"])
