@@ -100,6 +100,7 @@ func AcceptConnectionRequest(c *gin.Context) {
 	connection := models.Connection{
 		UserAID: connectionRequest.RequestingUserID,
 		UserBID: userIDUint,
+		ConnectionRequestID: connectionRequest.ID,
 	}
 
 	if err := models.DB.Save(&connection).Error; err != nil {
@@ -193,5 +194,39 @@ func RejectConnectionRequest(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Connection request accepted",
+	})
+}
+
+func DeleteConnection(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+		return
+	}
+
+	requestId := c.Param("connection_id")
+	connectionIdConverted, err := strconv.ParseUint(requestId, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	connectionUint32 := uint(connectionIdConverted)
+
+	err = models.DeleteConnection(connectionUint32, userIDUint)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "connection deleted",
 	})
 }

@@ -61,6 +61,7 @@ func SetupRoutes(r *gin.Engine) {
 	connections.GET("/requests", handlers.GetConnectionRequests)
 	connections.PUT("/requests/:request_id/accept", handlers.AcceptConnectionRequest)
 	connections.PUT("/requests/:request_id/reject", handlers.RejectConnectionRequest)
+	connections.DELETE("/:connection_id", handlers.DeleteConnection)
 	public.GET("/verify/code/:email", handlers.GetVerificationCodeExpiration)
 	private.GET("/questions", handlers.GetQuestions)
 	private.GET("/get-results/user/:user_id", handlers.GetResults)

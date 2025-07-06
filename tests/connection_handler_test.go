@@ -189,6 +189,7 @@ func TestAcceptConnectionRequest(t *testing.T) {
     err := models.DB.Where("user_a = ? AND user_b = ?", requestingUser.ID, requestedUser.ID).First(&newConnection).Error
     assert.NoError(t, err)
     assert.NotZero(t, newConnection.ID)
+    assert.Equal(t, connectionRequest.ID, newConnection.ConnectionRequestID)
 }
 
 func TestRejectConnectionRequest(t *testing.T) {
@@ -230,4 +231,46 @@ func TestRejectConnectionRequest(t *testing.T) {
     models.DB.First(&updatedRequest, connectionRequest.ID)
     assert.Equal(t, 0, updatedRequest.Status)
     assert.NotNil(t, updatedRequest.AnswerAt)
+}
+
+func TestDeleteConnection(t *testing.T) {
+    SetupTestDB()
+    defer models.TearDownTestDB()
+
+    requestingUser := factory.UserFactory()
+    models.DB.Create(&requestingUser)
+
+    requestedUser := factory.UserFactory()
+    models.DB.Create(&requestedUser)
+
+    connectionRequest := models.Connection{
+        UserAID: requestingUser.ID,
+        UserBID:  requestedUser.ID,
+    }
+
+    models.DB.Create(&connectionRequest)
+
+    connection := factory.ConnectionFactory()
+    connection.UserAID = requestingUser.ID
+    connection.UserBID = requestedUser.ID
+    models.DB.Create(&connection)
+
+    url := "/api/connections/" + strconv.FormatUint(uint64(connection.ID), 10)
+    req, _ := http.NewRequest("DELETE", url, nil)
+
+    authCookie := &http.Cookie{
+        Name:  "auth_token",
+        Value: factory.GetUserFactoryToken(requestedUser.ID),
+    }
+    req.AddCookie(authCookie)
+
+    rec := httptest.NewRecorder()
+    router.ServeHTTP(rec, req)
+
+    assert.Equal(t, http.StatusOK, rec.Code)
+
+    var newConnection models.Connection
+    err := models.DB.Where("id = ?", connection.ID).First(&newConnection).Error
+    assert.Error(t, err)
+    assert.Zero(t, newConnection.ID)
 }
