@@ -213,7 +213,7 @@ func DeleteConnection(c *gin.Context) {
 	requestId := c.Param("connection_id")
 	connectionIdConverted, err := strconv.ParseUint(requestId, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid connection ID format"})
 		return
 	}
 
