@@ -133,6 +133,11 @@ func GetConnectionRequests(c *gin.Context) {
 		return
 	}
 
+	if len(connectionRequests) == 0 {
+		c.JSON(200, gin.H{"data" : make([]ConnectionRequestResponse, 0)})
+		return
+	}
+
 	var responses []ConnectionRequestResponse
 	for _, req := range connectionRequests {
 		responses = append(responses, ConnectionRequestResponse{
