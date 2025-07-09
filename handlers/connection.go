@@ -89,7 +89,7 @@ func AcceptConnectionRequest(c *gin.Context) {
 		return
 	}
 
-	connectionRequest.AnswerAt = time.Now()
+	connectionRequest.AnswerAt = time.Now().UTC().Truncate(time.Second)
 	connectionRequest.Status = 1
 
 	if err := models.DB.Save(&connectionRequest).Error; err != nil {

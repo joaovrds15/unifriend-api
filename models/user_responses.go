@@ -16,6 +16,13 @@ type UserResponse struct {
     HasPendingConnectionRequest bool `gorm:"->;-:migration;column:has_pending_connection_request"`
 }
 
+type MatchingUserResponse struct {
+    UserResponse                `gorm:"embedded"`
+    HasConnection               bool              `gorm:"column:has_connection"`
+    HasPendingConnectionRequest bool              `gorm:"column:has_pending_connection_request"`
+    ConnectionRequest           ConnectionRequest `gorm:"embedded;embeddedPrefix:cr_"`
+}
+
 func (u *UserResponse) SaveUserResponse() {
 	DB.Save(&u)
 }
@@ -55,8 +62,8 @@ func HasUserAlreadyTakenQuiz(userID uint) (bool, error) {
 	return count > 0, nil
 }
 
-func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers []UserResponse) ([]UserResponse, error) {
-    var matchingResponses []UserResponse
+func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers []UserResponse) ([]MatchingUserResponse, error) {
+    var matchingResponses []MatchingUserResponse
 
     if len(currentUserAnswers) == 0 {
         return matchingResponses, nil
@@ -80,6 +87,10 @@ func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers [
 
     selectClause := `
         user_responses.*,
+        cr.id as cr_id,
+        cr.requesting_user_id as cr_requesting_user_id,
+        cr.requested_user_id as cr_requested_user_id,
+        cr.status as cr_status,
         CASE WHEN cr.id IS NOT NULL AND cr.status = 1 THEN TRUE ELSE FALSE END as has_connection,
         CASE WHEN cr.id IS NOT NULL AND cr.status = 2 THEN TRUE ELSE FALSE END as has_pending_connection_request`
 

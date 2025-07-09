@@ -33,9 +33,9 @@ func ValidConnectionRequest(requestingUserId uint, requestedUserId uint) (bool) 
     `, requestingUserId, requestingUserId).
     Where(`
         u2.id NOT IN (
-            SELECT cr.requesting_user_id FROM connection_requests cr WHERE cr.requested_user_id = ?
+            SELECT cr.requesting_user_id FROM connection_requests cr WHERE cr.requested_user_id = ? AND cr.status = 2
             UNION
-            SELECT cr.requested_user_id FROM connection_requests cr WHERE cr.requesting_user_id = ?
+            SELECT cr.requested_user_id FROM connection_requests cr WHERE cr.requesting_user_id = ? AND cr.status = 2
         )
     `, requestingUserId, requestingUserId).
     Count(&count).Error
