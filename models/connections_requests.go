@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type ConnectionRequest struct {
     ID                uint       `gorm:"primaryKey;autoIncrement" json:"id"`
@@ -49,7 +51,7 @@ func ValidConnectionRequest(requestingUserId uint, requestedUserId uint) (bool) 
 
 func GetConnectionRequests(userId uint) ([]ConnectionRequest, error) {
     var connectionRequests []ConnectionRequest
-    if err := DB.Preload("RequestingUser").Where("requested_user_id = ? AND status = ?", userId, StatusPending).Find(&connectionRequests).Error; err != nil {
+    if err := DB.Preload("RequestingUser.UserResponses").Where("requested_user_id = ? AND status = ?", userId, StatusPending).Find(&connectionRequests).Error; err != nil {
         return connectionRequests, err
     }
 
