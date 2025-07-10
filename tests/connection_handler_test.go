@@ -56,8 +56,8 @@ func TestCreateConnectionWhenThereIsUnacceptedRequest(t *testing.T) {
 	models.DB.Create(&user2)
 
 	connectionRequest := factory.ConnectionRequestFactory()
-	connectionRequest.RequestingUserID = user1.ID
-	connectionRequest.RequestedUserID = user2.ID
+	connectionRequest.RequestingUser = user1
+	connectionRequest.RequestedUser = user2
 	models.DB.Create(&connectionRequest)
 
 	req, _ := http.NewRequest("POST", "/api/connections/request/user/"+fmt.Sprintf("%d", user2.ID), nil)
@@ -86,8 +86,8 @@ func TestCreateConnectionWhenUsersAlreadyConnected(t *testing.T) {
 	models.DB.Create(&user2)
 
 	connection := factory.ConnectionFactory()
-	connection.UserAID = user1.ID
-	connection.UserBID = user2.ID
+	connection.UserA = user1
+	connection.UserB = user2
 	models.DB.Create(&connection)
 
 	req, _ := http.NewRequest("POST", "/api/connections/request/user/"+fmt.Sprintf("%d", user2.ID), nil)
@@ -116,8 +116,8 @@ func TestGetConnectionRequestsSuccess(t *testing.T) {
 
 
     connReq := models.ConnectionRequest{
-        RequestingUserID: otherUser.ID,
-        RequestedUserID:  user.ID,
+        RequestingUser: otherUser,
+        RequestedUser:  user,
         Status:           models.StatusPending,
     }
     models.DB.Create(&connReq)
@@ -156,10 +156,11 @@ func TestAcceptConnectionRequest(t *testing.T) {
     models.DB.Create(&requestedUser)
 
     connectionRequest := models.ConnectionRequest{
-        RequestingUserID: requestingUser.ID,
-        RequestedUserID:  requestedUser.ID,
+        RequestingUser: requestingUser,
+        RequestedUser:  requestedUser,
         Status:           models.StatusPending,
     }
+
     models.DB.Create(&connectionRequest)
 
     url := "/api/connections/requests/" + strconv.FormatUint(uint64(connectionRequest.ID), 10) + "/accept"
@@ -203,10 +204,11 @@ func TestRejectConnectionRequest(t *testing.T) {
     models.DB.Create(&requestedUser)
 
     connectionRequest := models.ConnectionRequest{
-        RequestingUserID: requestingUser.ID,
-        RequestedUserID:  requestedUser.ID,
+        RequestingUser: requestingUser,
+        RequestedUser:  requestedUser,
         Status:           models.StatusPending,
     }
+
     models.DB.Create(&connectionRequest)
 
     url := "/api/connections/requests/" + strconv.FormatUint(uint64(connectionRequest.ID), 10) + "/reject"
@@ -244,15 +246,15 @@ func TestDeleteConnection(t *testing.T) {
     models.DB.Create(&requestedUser)
 
     connectionRequest := models.Connection{
-        UserAID: requestingUser.ID,
-        UserBID:  requestedUser.ID,
+        UserA: requestingUser,
+        UserB:  requestedUser,
     }
 
     models.DB.Create(&connectionRequest)
 
     connection := factory.ConnectionFactory()
-    connection.UserAID = requestingUser.ID
-    connection.UserBID = requestedUser.ID
+    connection.UserA = requestingUser
+    connection.UserB = requestedUser
     models.DB.Create(&connection)
 
     url := "/api/connections/" + strconv.FormatUint(uint64(connection.ID), 10)

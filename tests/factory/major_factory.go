@@ -11,7 +11,5 @@ func MajorFactory() models.Major {
 		Name: faker.Sentence(),
 	}
 
-	models.DB.Create(&major)
-
 	return major
 }

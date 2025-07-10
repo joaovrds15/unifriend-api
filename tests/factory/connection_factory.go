@@ -11,7 +11,5 @@ func ConnectionFactory() models.Connection {
 		ConnectionRequest: ConnectionRequestFactory(),
 	}
 
-	models.DB.Create(&connection)
-
 	return connection
 }

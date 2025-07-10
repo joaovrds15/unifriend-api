@@ -25,8 +25,6 @@ func UserFactory() models.User {
 		DeletedAt: time.Time{},
 	}
 
-	models.DB.Create(&user)
-
 	return user
 }
 

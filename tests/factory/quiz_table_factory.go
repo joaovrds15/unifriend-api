@@ -12,7 +12,5 @@ func QuizTableFactory() models.QuizTable {
 		Description: faker.Sentence(),
 	}
 
-	models.DB.Create(&quiz)
-
 	return quiz
 }

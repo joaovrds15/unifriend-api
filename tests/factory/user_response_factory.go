@@ -11,7 +11,5 @@ func UserResponseFactory() models.UserResponse {
 		User:     UserFactory(),
 	}
 
-	models.DB.Create(&questionTable)
-
 	return questionTable
 }

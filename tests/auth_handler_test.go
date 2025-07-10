@@ -18,12 +18,6 @@ func TestLoginWithWrongCredentials(t *testing.T) {
     SetupTestDB()
     defer models.TearDownTestDB()
 
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
     user := factory.UserFactory()
     user.Email = "teste@mail.com"
     user.Password = "Wrong@passowrd"
@@ -47,12 +41,6 @@ func TestLogin(t *testing.T) {
     defer models.TearDownTestDB()
 
     os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
 
     user := factory.UserFactory()
     user.Email = "test@mail.com"
@@ -95,12 +83,6 @@ func TestLoginDeletedUser(t *testing.T) {
 
     os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
 
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
-
     user := factory.UserFactory()
 	user.Status = 0
 	user.DeletedAt = time.Now()
@@ -124,16 +106,14 @@ func TestRegister(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
 
-	major := models.Major{
-		Name: "Computer Science",
-	}
+	major := factory.MajorFactory()
 
 	models.DB.Create(&major)
 
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
-		"major_id":            1,
+		"major_id":            major.ID,
 		"email":               "testemail@mail.com",
 		"name":                "test user",
 		"phone_number":        "62999999999",
@@ -177,18 +157,14 @@ func TestRegisterWithDuplicatedEmail(t *testing.T) {
 	SetupTestDB()
 	defer models.TearDownTestDB()
 
-	major := factory.MajorFactory()
 	user := factory.UserFactory()
-	user.Email = "testuser@mail.com"
-
-	models.DB.Create(&major)
 	models.DB.Create(&user)
 
 	userData := map[string]interface{}{
 		"password":            "Senha@123",
 		"re_password":         "Senha@123",
 		"major_id":            1,
-		"email":               "testuser@mail.com",
+		"email":               user.Email,
 		"name":                "test user",
 		"phone_number":        "62999999999",
 	}
@@ -259,20 +235,14 @@ func TestRegisterInvalidPassword(t *testing.T) {
 
 	models.DB.Create(&major)
 
-	imagesUrls := []string{
-		"http://test.com",
-		"http://test2.com",
-	}
-
 	userData := map[string]interface{}{
 		"password":            "Senha123",
 		"re_password":         "Senha123",
-		"major_id":            1,
+		"major_id":            major.ID,
 		"email":               "testemail@mail.com",
 		"name":                "test user",
 		"profile_picture_url": "http://test.com",
 		"phone_number":        "62999999999",
-		"images":              imagesUrls,
 	}
 
 	jsonValue, _ := json.Marshal(userData)
@@ -294,12 +264,6 @@ func TestLogout(t *testing.T) {
     defer models.TearDownTestDB()
 
     os.Setenv("TOKEN_HOUR_LIFESPAN", "1")
-
-    major := models.Major{
-        Name: "Computer Science",
-    }
-
-    models.DB.Create(&major)
 
     user := factory.UserFactory()
     user.Email = "test@mail.com"

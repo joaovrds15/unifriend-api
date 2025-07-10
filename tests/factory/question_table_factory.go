@@ -13,7 +13,5 @@ func QuestionTableFactory() models.QuestionTable {
 		Options: OptionTableFactories(3),
 	}
 
-	models.DB.Create(&questionTable)
-
 	return questionTable
 }

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -23,19 +24,10 @@ func TestGetQuestions(t *testing.T) {
 	models.DB.Create(&quiz)
 	models.DB.Create(&user)
 
-	questions := [3]models.QuestionTable{}
 	for i := 0; i < 3; i++ {
 		question := factory.QuestionTableFactory()
-		question.Quiz_id = quiz.ID
+		question.Quiz = quiz
 		models.DB.Create(&question)
-		questions[i] = question
-	}
-
-	for _, question := range questions {
-		options := factory.OptionTableFactories(5)
-		models.DB.Create(&options)
-		models.DB.Model(&question).Association("Options").Append(&options)
-		question.Options = options
 	}
 
 	req, _ := http.NewRequest("GET", "/api/questions", nil)
@@ -77,18 +69,20 @@ func TestGetQuestionsWhenUserAlreadyTakenQuiz(t *testing.T) {
 	models.DB.Create(&user)
 
 	question := factory.QuestionTableFactory()
-
+	models.DB.Create(&question)
 	options := factory.OptionTableFactories(2)
+	options[0].QuestionTable = question
+	options[1].QuestionTable = question
 	models.DB.Create(&options)
-	models.DB.Model(&question).Association("Options").Append(&options)
-	question.Options = options
 
-	userResponse := factory.UserResponseFactory()
-	userResponse.OptionID = 1
-	userResponse.QuestionID = question.ID
-	userResponse.UserID = user.ID
+	for _, option := range options {
+		userResponse := factory.UserResponseFactory()
+		userResponse.Option = option
+		userResponse.Question = question
+		userResponse.User = user
 
-	models.DB.Create(&userResponse)
+		models.DB.Create(&userResponse)
+	}
 
 	req, _ := http.NewRequest("GET", "/api/questions", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -116,37 +110,34 @@ func TestSaveAnswers(t *testing.T) {
 
 	models.DB.Create(&quiz)
 	models.DB.Create(&user)
+
 	questions := [3]models.QuestionTable{}
 	for i := 0; i < 3; i++ {
 		question := factory.QuestionTableFactory()
-		question.Quiz_id = quiz.ID
+		question.Quiz = quiz
 		models.DB.Create(&question)
 		questions[i] = question
 	}
 
-	for _, question := range questions {
-		options := factory.OptionTableFactories(5)
-		models.DB.Model(&question).Association("Options").Append(&options)
-	}
+	var request = make(map[string]any)
+	request["user_id"] = user.ID
+	request["quiz_id"] = quiz.ID
 
-	payload := []byte(`{
-		"user_id" : 1,
-		"quiz_id" : 1,
-		"answers" : [
-			  {
-				  "question_id": 1,
-				  "option_id": 1
-			  },
-			  {
-				  "question_id": 2,
-				  "option_id": 6
-			  },
-			  {
-				  "question_id": 3,
-				  "option_id": 11
-			  }
-		  ]
-	  }`)
+	answers := make([]map[string]any, 0)
+	for _, question := range questions {
+		answer := map[string]any{
+			"question_id": question.ID,
+			"option_id":   question.Options[0].ID,
+		}
+		answers = append(answers, answer)
+	}
+	request["answers"] = answers
+
+	
+	payload, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal request: %v", err)
+	}
 
 	req, _ := http.NewRequest("POST", "/api/answer/save", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
@@ -169,7 +160,7 @@ func TestSaveAnswers(t *testing.T) {
 	for i, userResponse := range userResponses {
 		assert.Equal(t, questions[i].ID, userResponse.QuestionID)
 		assert.Equal(t, count, userResponse.OptionID)
-		count += 5
+		count += 3
 	}
 
 }

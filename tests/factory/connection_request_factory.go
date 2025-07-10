@@ -10,7 +10,5 @@ func ConnectionRequestFactory() models.ConnectionRequest {
 		RequestedUser: UserFactory(),
 	}
 
-	models.DB.Create(&connectionRequest)
-
 	return connectionRequest
 }
