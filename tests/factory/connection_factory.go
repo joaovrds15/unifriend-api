@@ -6,9 +6,12 @@ import (
 
 func ConnectionFactory() models.Connection {
 	connection := models.Connection{
-		UserAID: UserFactory().ID,
-		UserBID: UserFactory().ID,
+		UserA: UserFactory(),
+		UserB: UserFactory(),
+		ConnectionRequest: ConnectionRequestFactory(),
 	}
+
+	models.DB.Create(&connection)
 
 	return connection
 }

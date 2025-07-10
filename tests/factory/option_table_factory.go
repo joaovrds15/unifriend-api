@@ -9,8 +9,10 @@ import (
 func OptionTableFactory() models.OptionTable {
 	questionTable := models.OptionTable{
 		Text:       faker.Word(),
-		QuestionID: QuestionTableFactory().ID,
+		QuestionTable: QuestionTableFactory(),
 	}
+
+	models.DB.Create(&questionTable)
 
 	return questionTable
 }

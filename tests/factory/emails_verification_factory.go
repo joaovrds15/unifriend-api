@@ -34,6 +34,8 @@ func EmailsVerificationFactory() models.EmailsVerification {
 		Expiration:       time.Now().Add(time.Duration(emailVerificationCodeLifespan) * time.Minute).UTC().Truncate(time.Second),
 	}
 
+	models.DB.Create(&emailVerification)
+
 	return emailVerification
 }
 

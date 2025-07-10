@@ -12,5 +12,7 @@ func EmailDomainsFactory() models.EmailDomains {
 		Domain:      faker.DomainName(),
 	}
 
+	models.DB.Create(&emailDomain)
+
 	return emailDomain
 }

@@ -11,5 +11,7 @@ func UsersImagesFactory() models.UsersImages {
 		ImageUrl: faker.URL(),
 	}
 
+	models.DB.Create(&userImages)
+
 	return userImages
 }

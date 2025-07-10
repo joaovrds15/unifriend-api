@@ -6,10 +6,12 @@ import (
 
 func UserResponseFactory() models.UserResponse {
 	questionTable := models.UserResponse{
-		QuestionID: QuestionTableFactory().ID,
-		OptionID:   OptionTableFactory().ID,
-		UserID:     UserFactory().ID,
+		Question: QuestionTableFactory(),
+		Option:   OptionTableFactory(),
+		User:     UserFactory(),
 	}
+
+	models.DB.Create(&questionTable)
 
 	return questionTable
 }
