@@ -1374,9 +1374,9 @@ func TestGetUserResultsPageBeyondTotal(t *testing.T) {
         models.DB.Create(&otherUser)
 
         matchingResponse := factory.UserResponseFactory()
-        matchingResponse.UserID = otherUser.ID
-        matchingResponse.QuestionID = userResponse.QuestionID
-        matchingResponse.OptionID = userResponse.OptionID
+        matchingResponse.User = otherUser
+        matchingResponse.Question = userResponse.Question
+        matchingResponse.Option = userResponse.Option
         models.DB.Create(&matchingResponse)
     }
 
