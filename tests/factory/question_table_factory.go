@@ -9,7 +9,8 @@ import (
 func QuestionTableFactory() models.QuestionTable {
 	questionTable := models.QuestionTable{
 		Text:    faker.Word(),
-		Quiz_id: QuizTableFactory().ID,
+		Quiz: QuizTableFactory(),
+		Options: OptionTableFactories(3),
 	}
 
 	return questionTable

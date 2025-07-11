@@ -9,7 +9,6 @@ import (
 func OptionTableFactory() models.OptionTable {
 	questionTable := models.OptionTable{
 		Text:       faker.Word(),
-		QuestionID: QuestionTableFactory().ID,
 	}
 
 	return questionTable

@@ -32,7 +32,6 @@ func TestDeleteUserImageSuccess(t *testing.T) {
 	models.DB.Create(&user)
 
 	image := factory.UsersImagesFactory()
-	image.UserID = user.ID
 	image.User = user
 	models.DB.Create(&image)
 
@@ -1053,16 +1052,16 @@ func TestGetUserResultWithMatches(t *testing.T) {
 	models.DB.Create(&user)
 
 	userResponse := factory.UserResponseFactory()
-	userResponse.UserID = user.ID
+	userResponse.User = user
 	models.DB.Create(&userResponse)
 
 	otherUser := factory.UserFactory()
 	models.DB.Create(&otherUser)
 
 	matchingResponse := factory.UserResponseFactory()
-	matchingResponse.UserID = otherUser.ID
-	matchingResponse.QuestionID = userResponse.QuestionID
-	matchingResponse.OptionID = userResponse.OptionID
+	matchingResponse.User = otherUser
+	matchingResponse.Question = userResponse.Question
+	matchingResponse.Option = userResponse.Option
 	models.DB.Create(&matchingResponse)
 
 	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
@@ -1107,31 +1106,31 @@ func TestGetUserResultWithMatchesUserHasPendingConnectionRequests(t *testing.T) 
 	models.DB.Create(&otherUser)
 
 	connectionRequest := factory.ConnectionRequestFactory()
-	connectionRequest.RequestingUserID = otherUser.ID
-	connectionRequest.RequestedUserID = user.ID
+	connectionRequest.RequestingUser = otherUser
+	connectionRequest.RequestedUser = user
 	models.DB.Create(&connectionRequest)
 
 	quiz := factory.QuizTableFactory()
 	models.DB.Create(&quiz)
 
 	question := factory.QuestionTableFactory()
-	question.Quiz_id = quiz.ID
+	question.Quiz = quiz
 	models.DB.Create(&question)
 
 	option := factory.OptionTableFactory()
-	option.QuestionID = question.ID
+	option.QuestionTable = question
 	models.DB.Create(&option)
 
 	userResponse := factory.UserResponseFactory()
-	userResponse.UserID = user.ID
-	userResponse.QuestionID = question.ID
-	userResponse.OptionID = option.ID
+	userResponse.User = user
+	userResponse.Question = question
+	userResponse.Option = option
 	models.DB.Create(&userResponse)
 
 	matchingResponse := factory.UserResponseFactory()
-	matchingResponse.UserID = otherUser.ID
-	matchingResponse.QuestionID = question.ID
-	matchingResponse.OptionID = option.ID
+	matchingResponse.User = otherUser
+	matchingResponse.Question = question
+	matchingResponse.Option = option
 	models.DB.Create(&matchingResponse)
 
 	req, _ := http.NewRequest("GET", "/api/get-results/user/"+strconv.FormatUint(uint64(user.ID), 10), nil)
@@ -1173,10 +1172,9 @@ func TestGetUserResultsWithPagination(t *testing.T) {
     models.DB.Create(&user)
 
     userResponse := factory.UserResponseFactory()
-    userResponse.UserID = user.ID
+    userResponse.User = user
     models.DB.Create(&userResponse)
 
-    // Create multiple other users with matching responses
     var otherUsers []models.User
     for i := 0; i < 15; i++ {
         otherUser := factory.UserFactory()
@@ -1184,9 +1182,9 @@ func TestGetUserResultsWithPagination(t *testing.T) {
         otherUsers = append(otherUsers, otherUser)
 
         matchingResponse := factory.UserResponseFactory()
-        matchingResponse.UserID = otherUser.ID
-        matchingResponse.QuestionID = userResponse.QuestionID
-        matchingResponse.OptionID = userResponse.OptionID
+        matchingResponse.User = otherUser
+        matchingResponse.Question = userResponse.Question
+        matchingResponse.Option = userResponse.Option
         models.DB.Create(&matchingResponse)
     }
 
@@ -1243,18 +1241,17 @@ func TestGetUserResultsDefaultPagination(t *testing.T) {
     models.DB.Create(&user)
 
     userResponse := factory.UserResponseFactory()
-    userResponse.UserID = user.ID
+    userResponse.User = user
     models.DB.Create(&userResponse)
 
-    // Create 5 other users with matching responses
     for i := 0; i < 5; i++ {
         otherUser := factory.UserFactory()
         models.DB.Create(&otherUser)
 
         matchingResponse := factory.UserResponseFactory()
-        matchingResponse.UserID = otherUser.ID
-        matchingResponse.QuestionID = userResponse.QuestionID
-        matchingResponse.OptionID = userResponse.OptionID
+        matchingResponse.User = otherUser
+        matchingResponse.Question = userResponse.Question
+        matchingResponse.Option = userResponse.Option
         models.DB.Create(&matchingResponse)
     }
 
@@ -1322,7 +1319,7 @@ func TestGetUserResultsLimitExceeded(t *testing.T) {
     models.DB.Create(&user)
 
     userResponse := factory.UserResponseFactory()
-    userResponse.UserID = user.ID
+    userResponse.User = user
     models.DB.Create(&userResponse)
 
     // Create 10 other users with matching responses
@@ -1331,9 +1328,9 @@ func TestGetUserResultsLimitExceeded(t *testing.T) {
         models.DB.Create(&otherUser)
 
         matchingResponse := factory.UserResponseFactory()
-        matchingResponse.UserID = otherUser.ID
-        matchingResponse.QuestionID = userResponse.QuestionID
-        matchingResponse.OptionID = userResponse.OptionID
+        matchingResponse.User = otherUser
+        matchingResponse.Question = userResponse.Question
+        matchingResponse.Option = userResponse.Option
         models.DB.Create(&matchingResponse)
     }
 
@@ -1368,7 +1365,7 @@ func TestGetUserResultsPageBeyondTotal(t *testing.T) {
     models.DB.Create(&user)
 
     userResponse := factory.UserResponseFactory()
-    userResponse.UserID = user.ID
+    userResponse.User = user
     models.DB.Create(&userResponse)
 
     // Create 5 other users with matching responses
@@ -1377,9 +1374,9 @@ func TestGetUserResultsPageBeyondTotal(t *testing.T) {
         models.DB.Create(&otherUser)
 
         matchingResponse := factory.UserResponseFactory()
-        matchingResponse.UserID = otherUser.ID
-        matchingResponse.QuestionID = userResponse.QuestionID
-        matchingResponse.OptionID = userResponse.OptionID
+        matchingResponse.User = otherUser
+        matchingResponse.Question = userResponse.Question
+        matchingResponse.Option = userResponse.Option
         models.DB.Create(&matchingResponse)
     }
 

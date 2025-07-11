@@ -19,7 +19,7 @@ func UserFactory() models.User {
 		PhoneNumber:       generateBrazilianPhoneNumber(),
 		ProfilePictureURL: faker.URL(),
 		IsAdmin:           false,
-		MajorID:           MajorFactory().ID,
+		Major:           	MajorFactory(),
 		Images:            []models.UsersImages{UsersImagesFactory()},
 		Status: 1,
 		DeletedAt: time.Time{},
