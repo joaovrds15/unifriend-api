@@ -6,8 +6,8 @@ import (
 
 func ConnectionRequestFactory() models.ConnectionRequest {
 	connectionRequest := models.ConnectionRequest{
-		RequestingUserID: UserFactory().ID,
-		RequestedUserID: UserFactory().ID,
+		RequestingUser: UserFactory(),
+		RequestedUser: UserFactory(),
 	}
 
 	return connectionRequest
