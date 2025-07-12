@@ -87,10 +87,12 @@ func GetMatchingResponsesFromOtherUsers(currentUserID uint, currentUserAnswers [
 
     selectClause := `
         user_responses.*,
-        cr.id as cr_id,
-        cr.requesting_user_id as cr_requesting_user_id,
-        cr.requested_user_id as cr_requested_user_id,
-        cr.status as cr_status,
+        cr.id as "cr_id",
+        cr.requesting_user_id as "cr_requesting_user_id",
+        cr.requested_user_id as "cr_requested_user_id",
+        cr.status as "cr_status",
+        cr.created_at as "cr_created_at",
+        cr.answer_at as "cr_answer_at",
         CASE WHEN cr.id IS NOT NULL AND cr.status = 1 THEN TRUE ELSE FALSE END as has_connection,
         CASE WHEN cr.id IS NOT NULL AND cr.status = 2 THEN TRUE ELSE FALSE END as has_pending_connection_request`
 
