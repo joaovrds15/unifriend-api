@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type ConnectionRequest struct {
     ID                uint       `gorm:"primaryKey;autoIncrement" json:"id"`
@@ -10,7 +12,14 @@ type ConnectionRequest struct {
     RequestedUser     User       `gorm:"foreignKey:RequestedUserID;constraint:OnDelete:CASCADE" json:"-"`
     Status            int        `gorm:"type:int;default:2" json:"status"`
     CreatedAt         time.Time  `gorm:"precision:3;autoCreateTime" json:"created_at"`
-    AnswerAt        time.Time `gorm:"precision:3" json:"accepted_at,omitempty"`
+    AnswerAt        time.Time `gorm:"precision:3; default:NULL" json:"accepted_at,omitempty"`
+}
+
+type ConnectionRequestWithScoreResult struct {
+    ConnectionRequest `gorm:"embedded"`
+    Name string
+    ProfilePictureUrl string
+    Score int
 }
 
 const (
@@ -33,9 +42,9 @@ func ValidConnectionRequest(requestingUserId uint, requestedUserId uint) (bool) 
     `, requestingUserId, requestingUserId).
     Where(`
         u2.id NOT IN (
-            SELECT cr.requesting_user_id FROM connection_requests cr WHERE cr.requested_user_id = ?
+            SELECT cr.requesting_user_id FROM connection_requests cr WHERE cr.requested_user_id = ? AND cr.status = 2
             UNION
-            SELECT cr.requested_user_id FROM connection_requests cr WHERE cr.requesting_user_id = ?
+            SELECT cr.requested_user_id FROM connection_requests cr WHERE cr.requesting_user_id = ? AND cr.status = 2
         )
     `, requestingUserId, requestingUserId).
     Count(&count).Error
@@ -47,13 +56,29 @@ func ValidConnectionRequest(requestingUserId uint, requestedUserId uint) (bool) 
     return count == 1
 }
 
-func GetConnectionRequests(userId uint) ([]ConnectionRequest, error) {
-    var connectionRequests []ConnectionRequest
-    if err := DB.Preload("RequestingUser").Where("requested_user_id = ? AND status = ?", userId, StatusPending).Find(&connectionRequests).Error; err != nil {
-        return connectionRequests, err
-    }
+func GetConnectionRequests(userId uint) ([]ConnectionRequestWithScoreResult, error) {
+    var results []ConnectionRequestWithScoreResult
+    err := DB.Table("connection_requests as cr").
+        Select(`
+            cr.id, cr.requesting_user_id, cr.created_at, cr.status,
+            u.profile_picture_url, u.name,
+            COUNT(ur2.option_id) as score
+        `).
+        Joins("JOIN users u ON u.id = cr.requesting_user_id").
+        Joins(`
+            LEFT JOIN (
+                SELECT user_id, option_id FROM user_responses WHERE user_id = ?
+            ) as ur ON 1=1
+        `, userId).
+        Joins(`
+            LEFT JOIN user_responses as ur2 ON ur2.user_id = cr.requesting_user_id AND ur2.option_id = ur.option_id
+        `).
+        Where("cr.requested_user_id = ? AND cr.status = ?", userId, StatusPending).
+        Group("cr.id, u.id").
+        Order("cr.created_at desc").
+        Scan(&results).Error
 
-    return connectionRequests, nil
+    return results, err
 }
 
 func GetConnectionRequestById(requestId uint, userId uint) (ConnectionRequest, error) {

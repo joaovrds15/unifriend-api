@@ -22,6 +22,7 @@ type User struct {
 	Major             Major
 	Status			  int  `gorm:"default:1"`
 	Images            []UsersImages `gorm:"foreignKey:UserID"`
+	UserResponses     []UserResponse `gorm:"foreignKey:UserID"`
 	DeletedAt        time.Time `gorm:"default:NULL"`
 }
 

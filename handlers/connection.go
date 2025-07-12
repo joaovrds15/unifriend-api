@@ -9,16 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type RequestingUserResponse struct {
+	UserId            uint   `json:"user_id"`
+	ProfilePictureURL string `json:"profile_picture_url"`
+	Name              string `json:"name"`
+	Score             int    `json:"score"`
+}
+
 type ConnectionRequestResponse struct {
-    ID               uint      `json:"id"`
-    RequestingUserID uint      `json:"requesting_user_id"`
-    Status           int       `json:"status"`
-    CreatedAt        string `json:"created_at"`
-    RequestingUser   struct {
-        UserId            uint   `json:"user_id"`
-		ProfilePictureURL string `json:"profile_picture_url"`
-		Name              string `json:"name"`
-    } `json:"requesting_user"`
+	ID               uint                  `json:"id"`
+	RequestingUserID uint                  `json:"requesting_user_id"`
+	Status           int                   `json:"status"`
+	CreatedAt        string                `json:"created_at"`
+	RequestingUser   RequestingUserResponse `json:"requesting_user"`
 }
 
 func CreateConnectionRequest (c *gin.Context) {
@@ -89,7 +92,7 @@ func AcceptConnectionRequest(c *gin.Context) {
 		return
 	}
 
-	connectionRequest.AnswerAt = time.Now()
+	connectionRequest.AnswerAt = time.Now().UTC().Truncate(time.Second)
 	connectionRequest.Status = 1
 
 	if err := models.DB.Save(&connectionRequest).Error; err != nil {
@@ -133,21 +136,23 @@ func GetConnectionRequests(c *gin.Context) {
 		return
 	}
 
+	if len(connectionRequests) == 0 {
+		c.JSON(200, gin.H{"data" : make([]ConnectionRequestResponse, 0)})
+		return
+	}
+
 	var responses []ConnectionRequestResponse
 	for _, req := range connectionRequests {
 		responses = append(responses, ConnectionRequestResponse{
-			ID:               req.ID,
-			RequestingUserID: req.RequestingUserID,
-			CreatedAt:        req.CreatedAt.Format("2006-01-02 15:04"),
-			Status: 		  req.Status,
-			RequestingUser: struct {
-				UserId            uint   `json:"user_id"`
-				ProfilePictureURL string `json:"profile_picture_url"`
-				Name              string `json:"name"`
-			}{
-				UserId:            req.RequestingUser.ID,
-				ProfilePictureURL: req.RequestingUser.ProfilePictureURL,
-				Name:              req.RequestingUser.Name,
+			ID:               req.ConnectionRequest.ID,
+			RequestingUserID: req.ConnectionRequest.RequestingUserID,
+			CreatedAt:        req.ConnectionRequest.CreatedAt.Format("2006-01-02 15:04"),
+			Status:           req.ConnectionRequest.Status,
+			RequestingUser: RequestingUserResponse{
+				UserId:            req.ConnectionRequest.RequestingUserID,
+				ProfilePictureURL: req.ProfilePictureUrl,
+				Name:              req.Name,
+				Score:             req.Score,
 			},
 		})
 	}

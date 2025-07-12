@@ -41,6 +41,7 @@ type User struct {
 	Score             int    `json:"score"`
 	HasPendingConnectionRequest bool `json:"has_pending_connection_request"`
 	HasConnection bool `json:"has_connection"`
+	ConnectionRequest models.ConnectionRequest `json:"connection_request"`
 }
 
 type UserResponse struct {
@@ -457,7 +458,7 @@ func validateUserAccess(c *gin.Context, requestedUserID uint) error {
 	return nil
 }
 
-func buildUserScores(matchingResponses []models.UserResponse) []User {
+func buildUserScores(matchingResponses []models.MatchingUserResponse) []User {
 	scoreResult := make(map[uint]User)
 
 	for _, matchingResponse := range matchingResponses {
@@ -471,6 +472,7 @@ func buildUserScores(matchingResponses []models.UserResponse) []User {
 				Score:             1,
 				HasPendingConnectionRequest: matchingResponse.HasPendingConnectionRequest,
 				HasConnection: matchingResponse.HasConnection,
+				ConnectionRequest: matchingResponse.ConnectionRequest,
 			}
 		} else {
 			user.Score++
