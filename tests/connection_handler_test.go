@@ -114,6 +114,13 @@ func TestGetConnectionRequestsSuccess(t *testing.T) {
     models.DB.Create(&user)
     models.DB.Create(&otherUser)
 
+    userResponse := factory.UserResponseFactory()
+    userResponse.User = user
+    models.DB.Create(&userResponse)
+
+    otherUserResponse := factory.UserResponseFactory()
+    otherUserResponse.User = otherUser
+    models.DB.Create(&otherUserResponse)
 
     connReq := models.ConnectionRequest{
         RequestingUser: otherUser,
@@ -133,7 +140,6 @@ func TestGetConnectionRequestsSuccess(t *testing.T) {
 
     rec := httptest.NewRecorder()
     router.ServeHTTP(rec, req)
-	fmt.Println("Response Body:", rec.Body.String())
     assert.Equal(t, http.StatusOK, rec.Code)
 
     var response map[string][]handlers.ConnectionRequestResponse
@@ -142,6 +148,7 @@ func TestGetConnectionRequestsSuccess(t *testing.T) {
 	data := response["data"]
     assert.Len(t, data, 1)
     assert.Equal(t, connReq.ID, data[0].ID)
+    assert.Zero(t, data[0].RequestingUser.Score)
     assert.Equal(t, otherUser.ID, data[0].RequestingUserID)
 }
 
