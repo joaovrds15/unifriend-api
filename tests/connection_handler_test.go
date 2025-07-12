@@ -3,8 +3,10 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"unifriend-api/handlers"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestCreateConnectionRequestSuccess(t *testing.T) {
@@ -32,17 +35,31 @@ func TestCreateConnectionRequestSuccess(t *testing.T) {
 		Path:  "/",
 	}
 
+    absPath, err := filepath.Abs("json-schemas/test_accept_connection_request.json")
+	if err != nil {
+		log.Fatalf("Error getting absolute path: %v", err)
+	}
+
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + absPath)
+
 	req.AddCookie(authCookie)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
+    loader := gojsonschema.NewStringLoader(rec.Body.String())
+	result, err := gojsonschema.Validate(schemaLoader, loader)
+	if err != nil {
+		log.Fatalf("Error validating schema: %v", err)
+	}
+
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	var connection models.ConnectionRequest
 	models.DB.Where("requesting_user_id", user1.ID).First(&connection)
-	fmt.Println(connection)
+
 	assert.Equal(t, user1.ID, connection.RequestingUserID)
 	assert.Equal(t, user2.ID, connection.RequestedUserID)
 	assert.Equal(t, models.StatusPending, connection.Status)
+    assert.Equal(t, true, result.Valid())
 }
 
 func TestCreateConnectionWhenThereIsUnacceptedRequest(t *testing.T) {

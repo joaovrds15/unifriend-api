@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "requesting_user_id": {
+          "type": "integer"
+        },
+        "requested_user_id": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "accepted_at": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "id",
+        "requesting_user_id",
+        "requested_user_id",
+        "status",
+        "created_at",
+        "accepted_at"
+      ]
+    }
+  },
+  "required": [
+    "data"
+  ]
+}
