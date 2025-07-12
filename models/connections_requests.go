@@ -12,7 +12,7 @@ type ConnectionRequest struct {
     RequestedUser     User       `gorm:"foreignKey:RequestedUserID;constraint:OnDelete:CASCADE" json:"-"`
     Status            int        `gorm:"type:int;default:2" json:"status"`
     CreatedAt         time.Time  `gorm:"precision:3;autoCreateTime" json:"created_at"`
-    AnswerAt        time.Time `gorm:"precision:3; default:NULL" json:"accepted_at,omitempty"`
+    AnswerAt        *time.Time `gorm:"precision:3; default:NULL" json:"accepted_at"`
 }
 
 type ConnectionRequestWithScoreResult struct {

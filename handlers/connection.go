@@ -60,7 +60,7 @@ func CreateConnectionRequest (c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Connection request created"})
+	c.JSON(http.StatusCreated, gin.H{"data": connectionRequest})
 }
 
 func AcceptConnectionRequest(c *gin.Context) {
@@ -92,7 +92,8 @@ func AcceptConnectionRequest(c *gin.Context) {
 		return
 	}
 
-	connectionRequest.AnswerAt = time.Now().UTC().Truncate(time.Second)
+	t := time.Now().UTC().Truncate(time.Second)
+	connectionRequest.AnswerAt = &t
 	connectionRequest.Status = 1
 
 	if err := models.DB.Save(&connectionRequest).Error; err != nil {
@@ -189,7 +190,8 @@ func RejectConnectionRequest(c *gin.Context) {
 		return
 	}
 
-	connectionRequest.AnswerAt = time.Now()
+	t := time.Now().UTC().Truncate(time.Second)
+	connectionRequest.AnswerAt = &t
 	connectionRequest.Status = 0
 
 	if err := models.DB.Save(&connectionRequest).Error; err != nil {
