@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"os"
 	"unifriend-api/models"
 	"unifriend-api/routes"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 //	@title			UniFriend API
@@ -30,6 +32,12 @@ import (
 
 func main() {
 	r := gin.Default()
+
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
 
 	models.ConnectDataBase()
 

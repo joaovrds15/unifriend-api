@@ -1,0 +1,60 @@
+{
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "profile_picture_url": {
+          "type": "string"
+        },
+        "major": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ]
+        },
+        "images": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "phone_number",
+        "profile_picture_url",
+        "major",
+        "images"
+      ]
+    },
+    "error": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "data",
+    "error"
+  ]
+}

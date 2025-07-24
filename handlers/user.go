@@ -62,13 +62,13 @@ type PaginatedUserResponse struct {
 	TotalPages int `json:"total_pages"`
 }
 
-type UserLoginResponse struct {
+type UserLoginRegisterResponse struct {
 	UserID uint `json:"id"`
 	Name string `json:"name"`
 	Email string `json:"email"`
 	PhoneNumber string `json:"phone_number"`
 	ProfilePicture string `json:"profile_picture_url"`
-	Major models.Major `json:"majors"`
+	Major models.Major `json:"major"`
 	Images []models.UsersImages `json:"images"`
 
 }
@@ -269,12 +269,7 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 		return
 	}
 
-	if models.UsernameAlreadyUsed(emailVerificationInput.Email) {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email já está em uso"})
-		return
-	}
-
-	if !isValidEmail(emailVerificationInput.Email) {
+	if !isValidEmail(emailVerificationInput.Email) || models.UsernameAlreadyUsed(emailVerificationInput.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email inválido"})
 		return
 	}
@@ -331,6 +326,9 @@ func VerifyEmailCode(c *gin.Context) {
 
 	registrationTokenLifespan, _ := strconv.Atoi(os.Getenv("TOKEN_REGISTRATION_HOUR_LIFESPAN"))
 
+	verificationCode.Verified = true
+	models.DB.Save(&verificationCode)
+
 	c.SetCookie(
 		"registration_token",
 		token,
@@ -358,6 +356,11 @@ func GetVerificationCodeExpiration(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "verification code not found"})
 		return
 	}
+
+	if verificationCode.Verified {
+        c.JSON(http.StatusConflict, gin.H{"error": "email has already been verified"})
+        return
+    }
 
 	expirationTime := verificationCode.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
 	if expirationTime > 0 {

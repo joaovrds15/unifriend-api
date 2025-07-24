@@ -10,30 +10,25 @@ type EmailsVerification struct {
 	ID               uint      `json:"id" gorm:"primaryKey"`
 	Email            string    `gorm:"size:100;not null"`
 	VerificationCode int       `gorm:"not null"`
+	Verified		 bool 		`gorm:"default:false"`
 	CreatedAt        time.Time `gorm:"autoCreateTime"`
 	Expiration       time.Time `gorm:"not null"`
 }
 
-var emailVerificationCodeLifespan int
-
-func init() {
+func SaveVerificationCode(email string, code int) (*EmailsVerification, error) {
 	verificationLifespan := os.Getenv("VERIFICATION_CODE_LIFESPAN_MINUTES")
 	lifespan, err := strconv.Atoi(verificationLifespan)
 	if err != nil {
 		lifespan = 5
 	}
 
-	emailVerificationCodeLifespan = lifespan
-}
-
-func SaveVerificationCode(email string, code int) (*EmailsVerification, error) {
 	ev := &EmailsVerification{
 		Email:            email,
 		VerificationCode: code,
-		Expiration:       time.Now().Add(time.Duration(emailVerificationCodeLifespan) * time.Minute).UTC().Truncate(time.Second),
+		Expiration:       time.Now().Add(time.Duration(lifespan) * time.Minute).UTC().Truncate(time.Second),
 	}
 
-	err := DB.Save(&ev).Error
+	err = DB.Save(&ev).Error
 
 	if err != nil {
 		return &EmailsVerification{}, err
