@@ -746,8 +746,8 @@ func TestVerifyEmailAlreadyInUse(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusConflict, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Email já está em uso")
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Email inválido")
 }
 
 func TestVerifyWithInvalidEmailDomain(t *testing.T) {

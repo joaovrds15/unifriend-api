@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 	"unifriend-api/models"
+	"unifriend-api/utils/token"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,7 +52,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	u := models.User{}
+	user := models.User{}
 
 	if input.Password != input.RePassword {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "password and re_password are not the same"})
@@ -60,21 +61,53 @@ func Register(c *gin.Context) {
 
 	imagesUrl := []models.UsersImages{}
 
-	u.Password = input.Password
-	u.Email = input.Email
-	u.Name = input.Name
-	u.MajorID = input.MajorID
-	u.PhoneNumber = input.PhoneNumber
-	u.Images = imagesUrl
+	user.Password = input.Password
+	user.Email = input.Email
+	user.Name = input.Name
+	user.MajorID = input.MajorID
+	user.PhoneNumber = input.PhoneNumber
+	user.Images = imagesUrl
 
-	_, err := u.SaveUser()
+	_, err := user.SaveUser()
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, RegisterResponse{Message: "User created successfully"})
+	models.DB.Preload("Major").First(&user, user.ID)
+
+	token, err := token.GenerateToken(user.ID)
+
+	if err != nil {
+		c.JSON(http.StatusCreated, gin.H{"error" : "something went wrong"})
+		return
+	}
+
+	tokenLifespanStr := os.Getenv("TOKEN_HOUR_LIFESPAN")
+	tokenLifespan, _ := strconv.Atoi(tokenLifespanStr)
+
+	c.SetCookie(
+		"auth_token",
+		token,
+		tokenLifespan*3600,
+		"/",
+		os.Getenv("CLIENT_DOMAIN"),
+		os.Getenv("GIN_MODE") == "release",
+		true,
+	)
+
+	response := UserLoginRegisterResponse{
+		UserID:            user.ID,
+		Name:              user.Name,
+		Email:             user.Email,
+		PhoneNumber:       user.PhoneNumber,
+		ProfilePicture:    user.ProfilePictureURL,
+		Major:             user.Major,
+		Images:            user.Images,
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"error" : false, "data" : response})
 }
 
 func Login(c *gin.Context) {
@@ -106,7 +139,7 @@ func Login(c *gin.Context) {
 		true,
 	)
 
-	response := UserLoginResponse{
+	response := UserLoginRegisterResponse{
 		UserID:            user.ID,
 		Name:              user.Name,
 		Email:             user.Email,
@@ -116,7 +149,7 @@ func Login(c *gin.Context) {
 		Images:            user.Images,
 	}
 
-	c.JSON(http.StatusOK, gin.H{"error" : false, "data" : response, "token": token})
+	c.JSON(http.StatusOK, gin.H{"error" : false, "data" : response})
 }
 
 func Logout(c *gin.Context) {

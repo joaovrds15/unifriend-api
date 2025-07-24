@@ -9,7 +9,7 @@ WORKDIR /app
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh gcc musl-dev
 
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/cosmtrek/air@v1.52.0
 
 # Set the Current Working Directory inside the container
 

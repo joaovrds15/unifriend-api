@@ -19,7 +19,7 @@ type User struct {
 	IsAdmin           bool   `gorm:"default:false"`
 	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
-	Major             Major
+	Major             Major	`gorm:"foreignKey:MajorID"`
 	Status			  int  `gorm:"default:1"`
 	Images            []UsersImages `gorm:"foreignKey:UserID"`
 	UserResponses     []UserResponse `gorm:"foreignKey:UserID"`
@@ -84,7 +84,7 @@ func LoginCheck(email string, password string) (string, User) {
 
 	u := User{}
 
-	err = DB.Model(User{}).Where("email = ?", email).Where("status = 1 AND deleted_at IS NULL").Take(&u).Error
+	err = DB.Model(User{}).Preload("Major").Where("email = ?", email).Where("status = 1 AND deleted_at IS NULL").Take(&u).Error
 
 	if err != nil {
 		return "", User{}

@@ -3,15 +3,19 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 	"unifriend-api/models"
 	"unifriend-api/tests/factory"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func TestLoginWithWrongCredentials(t *testing.T) {
@@ -64,7 +68,6 @@ func TestLogin(t *testing.T) {
 
     assert.False(t, response["error"].(bool))
     assert.NotNil(t, response["data"])
-    assert.NotEmpty(t, response["token"])
 
     userData := response["data"].(map[string]interface{})
     assert.Equal(t, float64(user.ID), userData["id"])
@@ -72,9 +75,6 @@ func TestLogin(t *testing.T) {
     assert.Equal(t, user.Email, userData["email"])
     assert.Equal(t, user.PhoneNumber, userData["phone_number"])
     assert.Equal(t, user.ProfilePictureURL, userData["profile_picture_url"])
-
-    token := response["token"].(string)
-    assert.NotEmpty(t, token)
 }
 
 func TestLoginDeletedUser(t *testing.T) {
@@ -138,6 +138,22 @@ func TestRegister(t *testing.T) {
 
 	var user models.User
 	models.DB.Where("email = ?", userData["email"]).First(&user)
+
+	absPath, err := filepath.Abs("json-schemas/test_login_resgister_response.json")
+	if err != nil {
+		log.Fatalf("Error getting absolute path: %v", err)
+	}
+
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + absPath)
+
+	loader := gojsonschema.NewStringLoader(rec.Body.String())
+	result, err := gojsonschema.Validate(schemaLoader, loader)
+	if err != nil {
+		log.Fatalf("Error validating schema: %v", err)
+	}
+
+	assert.Equal(t, true, result.Valid())
+
 	assert.NotNil(t, user)
 
 	var userImages []models.UsersImages
@@ -148,9 +164,8 @@ func TestRegister(t *testing.T) {
 	for _, dbImg := range userImages {
 		assert.True(t, expectedImageUrls[dbImg.ImageUrl])
 	}
-
+	fmt.Println(rec.Body.String())
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Contains(t, rec.Body.String(), "User created successfully")
 }
 
 func TestRegisterWithDuplicatedEmail(t *testing.T) {
