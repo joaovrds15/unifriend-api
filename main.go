@@ -5,6 +5,7 @@ import (
 	"os"
 	"unifriend-api/models"
 	"unifriend-api/routes"
+	"unifriend-api/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,9 @@ func main() {
 
 	models.ConnectDataBase()
 
+	hub := services.NewHub()
+    go hub.Run()
+
 	corsConfig := cors.Config{
 		AllowOrigins:     []string{os.Getenv("CLIENT_DOMAIN")},
 		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
@@ -49,7 +53,7 @@ func main() {
 	}
 
 	r.Use(cors.New(corsConfig))
-	routes.SetupRoutes(r)
+	routes.SetupRoutes(r, hub)
 
 	r.Run(":8090")
 }

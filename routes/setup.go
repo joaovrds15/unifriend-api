@@ -11,7 +11,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRoutes(r *gin.Engine) {
+func SetupRoutes(r *gin.Engine, hub *services.Hub) {
 	public := r.Group("/api")
 	private := r.Group("/api")
 	register := r.Group("/api")
@@ -27,6 +27,12 @@ func SetupRoutes(r *gin.Engine) {
 		if err != nil {
 			log.Fatalf("Failed to create S3 client: %v", err)
 		}
+
+		handlers.SetHub(hub)
+
+		private.GET("/chat", func(c *gin.Context) {
+        	handlers.HandleWebSocket(c, hub)
+    	})
 
 		sesClient, err := services.NewSesClient()
 		if err != nil {
@@ -62,6 +68,8 @@ func SetupRoutes(r *gin.Engine) {
 	connections.PUT("/requests/:request_id/accept", handlers.AcceptConnectionRequest)
 	connections.PUT("/requests/:request_id/reject", handlers.RejectConnectionRequest)
 	connections.DELETE("/:connection_id", handlers.DeleteConnection)
+	connections.GET("", handlers.GetConnections)
+	connections.GET("/messages/:connection_id", handlers.GetMessages)
 	public.GET("/verify/code/:email", handlers.GetVerificationCodeExpiration)
 	private.GET("/questions", handlers.GetQuestions)
 	private.GET("/get-results/user/:user_id", handlers.GetResults)

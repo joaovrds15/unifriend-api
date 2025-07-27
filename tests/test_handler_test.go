@@ -6,6 +6,7 @@ import (
 	"unifriend-api/handlers"
 	"unifriend-api/models"
 	"unifriend-api/routes"
+	"unifriend-api/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +27,8 @@ func SetupTestDB() {
 
 func SetupRoutes() {
 	router = gin.Default()
-	routes.SetupRoutes(router)
+	hub := services.NewHub()
+    routes.SetupRoutes(router, hub)
 }
 
 func SetupRouterWithoutMiddleware() *gin.Engine {
