@@ -3,6 +3,7 @@ package services
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 	"unifriend-api/models"
 
@@ -21,7 +22,9 @@ var upgrader = websocket.Upgrader{
     ReadBufferSize:  1024,
     WriteBufferSize: 1024,
     CheckOrigin: func(r *http.Request) bool {
-        return true
+        origin := r.Header.Get("Origin")
+        allowedOrigin := os.Getenv("CLIENT_DOMAIN")
+        return origin == allowedOrigin
     },
 }
 
