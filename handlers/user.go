@@ -68,6 +68,7 @@ type UserLoginRegisterResponse struct {
 	Email string `json:"email"`
 	PhoneNumber string `json:"phone_number"`
 	ProfilePicture string `json:"profile_picture_url"`
+	Description string `json:"description"`
 	Major models.Major `json:"major"`
 	Images []models.UsersImages `json:"images"`
 

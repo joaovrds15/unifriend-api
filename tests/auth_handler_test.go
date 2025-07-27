@@ -117,6 +117,7 @@ func TestRegister(t *testing.T) {
 		"email":               "testemail@mail.com",
 		"name":                "test user",
 		"phone_number":        "62999999999",
+		"description":         "This is my bio, I'm a student!",
 	}
 
 	jsonValue, _ := json.Marshal(userData)

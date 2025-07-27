@@ -18,6 +18,7 @@ func UserFactory() models.User {
 		Name:              faker.Name(),
 		PhoneNumber:       generateBrazilianPhoneNumber(),
 		ProfilePictureURL: faker.URL(),
+		Description:       faker.Sentence(),
 		IsAdmin:           false,
 		Major:           	MajorFactory(),
 		Images:            []models.UsersImages{UsersImagesFactory()},

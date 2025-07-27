@@ -18,6 +18,7 @@ type RegisterInput struct {
 	Name              string   `json:"name" binding:"required"`
 	PhoneNumber       string   `json:"phone_number" binding:"required"`
 	MajorID           uint     `json:"major_id" binding:"required"`
+	Description       string   `json:"description"`
 }
 
 type LoginInput struct {
@@ -66,6 +67,7 @@ func Register(c *gin.Context) {
 	user.Name = input.Name
 	user.MajorID = input.MajorID
 	user.PhoneNumber = input.PhoneNumber
+	user.Description = input.Description
 	user.Images = imagesUrl
 
 	_, err := user.SaveUser()
@@ -146,6 +148,7 @@ func Login(c *gin.Context) {
 		PhoneNumber:       user.PhoneNumber,
 		ProfilePicture:    user.ProfilePictureURL,
 		Major:             user.Major,
+		Description:       user.Description,
 		Images:            user.Images,
 	}
 

@@ -16,6 +16,7 @@ type User struct {
 	Password          string `json:"password" gorm:"size:100;not null"`
 	Name              string `gorm:"size:100;not null"`
 	ProfilePictureURL string `gorm:"size:255"`
+	Description       string `gorm:"size:290"`
 	IsAdmin           bool   `gorm:"default:false"`
 	PhoneNumber       string `gorm:"size:20;not null"`
 	MajorID           uint
