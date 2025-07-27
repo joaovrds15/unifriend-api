@@ -35,6 +35,7 @@ func SetupTestDB() {
 		&UsersImages{},
 		&Connection{},
 		&ConnectionRequest{},
+		&Message{},
 	)
 }
 
@@ -65,7 +66,8 @@ func ConnectDataBase() {
 
 	DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
 
-	DB, err := gorm.Open(mysql.Open(DBURL), &gorm.Config{
+	var err error
+	DB, err = gorm.Open(mysql.Open(DBURL), &gorm.Config{
 		Logger: newLogger,
 	})
 
@@ -78,17 +80,18 @@ func ConnectDataBase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(
-		&User{},
-		&Major{},
-		&OptionTable{},
-		&QuestionTable{},
-		&QuizTable{},
-		&UserResponse{},
-		&EmailDomains{},
-		&EmailsVerification{},
-		&UsersImages{},
-		&Connection{},
-		&ConnectionRequest{},
-	)
+	// DB.AutoMigrate(
+	// 	&User{},
+	// 	&Major{},
+	// 	&OptionTable{},
+	// 	&QuestionTable{},
+	// 	&QuizTable{},
+	// 	&UserResponse{},
+	// 	&EmailDomains{},
+	// 	&EmailsVerification{},
+	// 	&UsersImages{},
+	// 	&Connection{},
+	// 	&ConnectionRequest{},
+	// 	&Message{},
+	// )
 }

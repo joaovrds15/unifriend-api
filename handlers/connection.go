@@ -161,6 +161,34 @@ func GetConnectionRequests(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": responses})
 }
 
+func GetConnections(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+		return
+	}
+
+	connectionRequests, err := models.GetConnections(userIDUint)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(connectionRequests) == 0 {
+		c.JSON(200, gin.H{"data" : make([]models.ConnectionWithUser, 0)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": connectionRequests})
+}
+
 func RejectConnectionRequest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

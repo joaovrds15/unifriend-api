@@ -84,7 +84,7 @@ func LoginCheck(email string, password string) (string, User) {
 
 	u := User{}
 
-	err = DB.Model(User{}).Preload("Major").Where("email = ?", email).Where("status = 1 AND deleted_at IS NULL").Take(&u).Error
+	err = DB.Model(User{}).Where("email = ?", email).Where("status = 1 AND deleted_at IS NULL").Take(&u).Error
 
 	if err != nil {
 		return "", User{}
