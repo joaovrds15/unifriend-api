@@ -74,6 +74,32 @@ type UserLoginRegisterResponse struct {
 
 }
 
+type UserProfileResponse struct {
+    UserID            uint          `json:"user_id"`
+    Name              string        `json:"name"`
+    Email             string        `json:"email"`
+    PhoneNumber       string        `json:"phone_number"`
+    ProfilePictureURL string        `json:"profile_picture_url"`
+    Description       string        `json:"description"`
+    Major             models.Major  `json:"major"`
+    Images            []models.UsersImages `json:"images"`
+    ConnectionCount   int           `json:"connection_count"`
+    Score             int           `json:"score"`
+    HasConnection     bool          `json:"has_connection"`
+    HasPendingConnectionRequest bool `json:"has_pending_connection_request"`
+}
+
+type UserSelfProfileResponse struct {
+    UserID            uint          `json:"user_id"`
+    Name              string        `json:"name"`
+    Email             string        `json:"email"`
+    PhoneNumber       string        `json:"phone_number"`
+    ProfilePictureURL string        `json:"profile_picture_url"`
+    Description       string        `json:"description"`
+    Major             models.Major  `json:"major"`
+    Images            []models.UsersImages `json:"images"`
+}
+
 type VerifyEmailInput struct {
 	Email string `uri:"email" binding:"required"`
 }
@@ -581,4 +607,157 @@ func DeleteUserAccount(c *gin.Context, uploader services.S3Uploader) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func GetMyProfile(c *gin.Context) {
+    userID, exists := c.Get("user_id")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+        return
+    }
+
+    userIDUint, ok := userID.(uint)
+    if !ok {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+        return
+    }
+
+    user, err := models.GetUserByID(userIDUint)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+        return
+    }
+
+	response := UserSelfProfileResponse{
+        UserID:            user.ID,
+        Name:              user.Name,
+        Email:             user.Email,
+        PhoneNumber:       user.PhoneNumber,
+        ProfilePictureURL: user.ProfilePictureURL,
+        Description:       user.Description,
+        Major:             user.Major,
+        Images:            user.Images,
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": response})
+}
+
+func GetUserProfile(c *gin.Context) {
+    currentUserID, exists := c.Get("user_id")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+        return
+    }
+
+    currentUserIDUint, ok := currentUserID.(uint)
+    if !ok {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid User ID format"})
+        return
+    }
+
+    var requestedUserInput struct {
+        UserID uint `uri:"user_id" binding:"required"`
+    }
+
+    if err := c.BindUri(&requestedUserInput); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+        return
+    }
+
+    // Get the requested user
+    requestedUser, err := models.GetUserByID(requestedUserInput.UserID)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+        return
+    }
+
+    // Calculate match score
+    currentUserResponses, err := models.GetUserResponsesByUserID(currentUserIDUint)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve your responses"})
+        return
+    }
+
+    requestedUserResponses, err := models.GetUserResponsesByUserID(requestedUserInput.UserID)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve requested user's responses"})
+        return
+    }
+
+    // Calculate match score based on matching responses
+    matchScore := calculateMatchScore(currentUserResponses, requestedUserResponses)
+
+    // Check connection status
+    hasConnection := false
+    hasPendingRequest := false
+
+    var connection models.Connection
+    connectionErr := models.DB.Where(
+        "(user_a = ? AND user_b = ?) OR (user_a = ? AND user_b = ?)",
+        currentUserIDUint, requestedUserInput.UserID,
+        requestedUserInput.UserID, currentUserIDUint,
+    ).First(&connection).Error
+    
+    if connectionErr == nil {
+        hasConnection = true
+    }
+
+    if !hasConnection {
+        var pendingRequest models.ConnectionRequest
+        requestErr := models.DB.Where(
+            "((requesting_user_id = ? AND requested_user_id = ?) OR "+
+            "(requesting_user_id = ? AND requested_user_id = ?)) AND status = ?",
+            currentUserIDUint, requestedUserInput.UserID,
+            requestedUserInput.UserID, currentUserIDUint,
+            models.StatusPending,
+        ).First(&pendingRequest).Error
+        
+        if requestErr == nil {
+            hasPendingRequest = true
+        }
+    }
+
+    // Count total connections
+    var connectionCount int64
+    models.DB.Model(&models.Connection{}).Where(
+        "user_a = ? OR user_b = ?", 
+        requestedUserInput.UserID, requestedUserInput.UserID,
+    ).Count(&connectionCount)
+
+    response := UserProfileResponse{
+        UserID:            requestedUser.ID,
+        Name:              requestedUser.Name,
+        Email:             requestedUser.Email,
+        PhoneNumber:       requestedUser.PhoneNumber,
+        ProfilePictureURL: requestedUser.ProfilePictureURL,
+        Description:       requestedUser.Description,
+        Major:             requestedUser.Major,
+        Images:            requestedUser.Images,
+        ConnectionCount:   int(connectionCount),
+        Score:             matchScore,
+        HasConnection:     hasConnection,
+        HasPendingConnectionRequest: hasPendingRequest,
+    }
+
+    c.JSON(http.StatusOK, gin.H{"data": response})
+}
+
+// Helper function to calculate match score between two users
+func calculateMatchScore(userResponses []models.UserResponse, otherUserResponses []models.UserResponse) int {
+    score := 0
+    
+    // Create a map for quick lookup of the other user's responses
+    otherResponseMap := make(map[uint]uint) // QuestionID -> OptionID
+    for _, response := range otherUserResponses {
+        otherResponseMap[response.QuestionID] = response.OptionID
+    }
+    
+    // Check for matches
+    for _, response := range userResponses {
+        if optionID, exists := otherResponseMap[response.QuestionID]; exists && optionID == response.OptionID {
+            score++
+        }
+    }
+    
+    return score
 }

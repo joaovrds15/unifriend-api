@@ -80,6 +80,8 @@ func SetupRoutes(r *gin.Engine, hub *services.Hub) {
 	register.POST("/register", handlers.Register)
 	private.POST("/answer/save", handlers.SaveAnswers)
 	private.GET("/logout", handlers.Logout)
+	private.GET("/users/profile", handlers.GetMyProfile)
+    private.GET("/users/:user_id", handlers.GetUserProfile)
 	public.POST("/login", handlers.Login)
 }
 
