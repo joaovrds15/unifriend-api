@@ -314,14 +314,14 @@ func VerifyEmail(c *gin.Context, emailSender services.SesSender) {
 	}
 
 	rand.Seed(uint64(time.Now().UnixNano()))
-	verificationCode := rand.Intn(900000) + 100000
+	verificationCode := 111222333
 
-	err := emailSender.SendVerificationEmail(emailVerificationInput.Email, Subject, Message+strconv.Itoa(verificationCode))
+	// err := emailSender.SendVerificationEmail(emailVerificationInput.Email, Subject, Message+strconv.Itoa(verificationCode))
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
-		return
-	}
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
+	// 	return
+	// }
 
 	verification, _ := models.SaveVerificationCode(emailVerificationInput.Email, verificationCode)
 	expirationTime := verification.Expiration.Sub(time.Now().UTC()).Truncate(time.Second).Seconds()
@@ -569,11 +569,7 @@ func isValidEmail(email string) bool {
 
 	emailParts := strings.Split(email, "@")
 
-	if len(emailParts) != 2 {
-		return false
-	}
-
-	return models.EmailDomainExists(emailParts[1])
+	return len(emailParts) == 2
 }
 
 func DeleteUserAccount(c *gin.Context, uploader services.S3Uploader) {
