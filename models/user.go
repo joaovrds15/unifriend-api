@@ -24,7 +24,7 @@ type User struct {
 	Status			  int  `gorm:"default:1"`
 	Images            []UsersImages `gorm:"foreignKey:UserID"`
 	UserResponses     []UserResponse `gorm:"foreignKey:UserID"`
-	DeletedAt        time.Time `gorm:"default:NULL"`
+	DeletedAt        *time.Time `gorm:"default:NULL"`
 }
 
 func GetUserByID(uid uint) (User, error) {
